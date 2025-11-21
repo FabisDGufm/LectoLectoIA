@@ -29,10 +29,7 @@
       class="split-panel split-panel-left"
       [class.hidden-mobile]="!showPdfPanel"
       aria-label="Panel de documento">
-      <app-pdf-viewer-pane
-        [documentId]="documentId"
-        [pdfUrl]="pdfUrl">
-      </app-pdf-viewer-pane>
+      <app-pdf-viewer-pane></app-pdf-viewer-pane>
     </section>
 
     <!-- Divisor redimensionable (preparado para futuras fases) -->
@@ -43,9 +40,7 @@
       class="split-panel split-panel-right"
       [class.hidden-mobile]="!showNotesPanel"
       aria-label="Panel de notas">
-      <app-notes-pane
-        [documentId]="documentId">
-      </app-notes-pane>
+      <app-notes-pane></app-notes-pane>
     </section>
 
   </div>

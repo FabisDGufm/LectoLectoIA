@@ -1,10 +1,19 @@
-/**
- * Componente PDF Viewer Pane
- * Visualización de documentos PDF usando PDF.js
- */
-
-import { Component, Input, OnInit, OnDestroy, signal } from '@angular/core';
+import { Component, OnInit, OnDestroy, signal, ElementRef, ViewChild, AfterViewInit, ChangeDetectorRef, inject, effect } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import * as pdfjsLib from 'pdfjs-dist';
+import { CurrentDocumentService, DocumentWithUrl } from '../../services/current-document.service';
+
+pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+interface RenderedPage {
+  documentId: string;
+  documentTitle: string;
+  pageNumber: number;
+  totalPages: number;
+  globalIndex: number;
+  canvas: HTMLCanvasElement;
+  thumbnail?: HTMLCanvasElement;
+}
 
 @Component({
   selector: 'app-pdf-viewer-pane',
@@ -13,125 +22,259 @@ import { CommonModule } from '@angular/common';
   templateUrl: './pdf-viewer-pane.component.html',
   styleUrls: ['./pdf-viewer-pane.component.scss']
 })
-export class PdfViewerPaneComponent implements OnInit, OnDestroy {
-  @Input() documentId?: string;
-  @Input() pdfUrl?: string;
+export class PdfViewerPaneComponent implements OnInit, OnDestroy, AfterViewInit {
+  private readonly cdr = inject(ChangeDetectorRef);
+  private readonly currentDocumentService = inject(CurrentDocumentService);
 
-  // Estado del componente
-  currentPage = signal(1);
-  totalPages = signal(0);
+  @ViewChild('pagesContainer', { static: false }) pagesContainerRef!: ElementRef<HTMLDivElement>;
+  @ViewChild('thumbnailsContainer', { static: false }) thumbnailsContainerRef!: ElementRef<HTMLDivElement>;
+
   scale = signal(1.0);
-  isLoading = signal(true);
+  isLoading = signal(false);
   error = signal<string | null>(null);
+  renderedPages = signal<RenderedPage[]>([]);
+  totalPagesAll = signal(0);
+  showThumbnails = signal(false);
 
-  // Referencia a PDF.js (se cargará dinámicamente)
-  private pdfDoc: any = null;
-  private pageRendering = false;
-  private pageNumPending: number | null = null;
+  private loadedPdfs: Map<string, pdfjsLib.PDFDocumentProxy> = new Map();
+  private isDestroyed = false;
 
-  ngOnInit(): void {
-    if (this.pdfUrl) {
-      this.loadPdf(this.pdfUrl);
-    }
+  activeDocuments = this.currentDocumentService.activeDocuments;
+  hasDocuments = this.currentDocumentService.hasDocuments;
+
+  constructor() {
+    effect(() => {
+      const docs = this.activeDocuments();
+      if (docs.length > 0 && !this.isDestroyed) {
+        this.loadAllDocuments(docs);
+      }
+    });
   }
+
+  ngOnInit(): void {}
+
+  ngAfterViewInit(): void {}
 
   ngOnDestroy(): void {
-    if (this.pdfDoc) {
-      this.pdfDoc.destroy();
-    }
+    this.isDestroyed = true;
+    this.loadedPdfs.forEach(pdf => pdf.destroy());
+    this.loadedPdfs.clear();
   }
 
-  /**
-   * Carga el documento PDF usando PDF.js
-   * NOTA: En una implementación completa, se usaría @types/pdfjs-dist
-   */
-  async loadPdf(url: string): Promise<void> {
+  async loadAllDocuments(documents: DocumentWithUrl[]): Promise<void> {
+    if (documents.length === 0) return;
+
+    this.isLoading.set(true);
+    this.error.set(null);
+    this.renderedPages.set([]);
+
     try {
-      this.isLoading.set(true);
-      this.error.set(null);
+      const allPages: RenderedPage[] = [];
+      let totalPages = 0;
 
-      // Placeholder: En implementación real se usaría:
-      // const pdfjsLib = await import('pdfjs-dist');
-      // pdfjsLib.GlobalWorkerOptions.workerSrc = ...
-      // const loadingTask = pdfjsLib.getDocument(url);
-      // this.pdfDoc = await loadingTask.promise;
+      for (const docWithUrl of documents) {
+        let pdfDoc = this.loadedPdfs.get(docWithUrl.document._id);
 
-      // Por ahora, simular carga
-      console.log('Cargando PDF desde:', url);
+        if (!pdfDoc) {
+          console.log('Cargando PDF:', docWithUrl.document.title);
+          const loadingTask = pdfjsLib.getDocument(docWithUrl.pdfUrl);
+          pdfDoc = await loadingTask.promise;
+          this.loadedPdfs.set(docWithUrl.document._id, pdfDoc);
+        }
 
-      // Simular delay de carga
-      await new Promise(resolve => setTimeout(resolve, 500));
+        totalPages += pdfDoc.numPages;
 
-      this.totalPages.set(10); // Placeholder
+        for (let pageNum = 1; pageNum <= pdfDoc.numPages; pageNum++) {
+          const canvas = await this.renderPageToCanvas(pdfDoc, pageNum);
+          const thumbnail = await this.renderThumbnail(pdfDoc, pageNum);
+          allPages.push({
+            documentId: docWithUrl.document._id,
+            documentTitle: docWithUrl.document.title,
+            pageNumber: pageNum,
+            totalPages: pdfDoc.numPages,
+            globalIndex: allPages.length,
+            canvas,
+            thumbnail
+          });
+        }
+      }
+
+      this.totalPagesAll.set(totalPages);
+      this.renderedPages.set(allPages);
       this.isLoading.set(false);
-      this.renderPage(1);
 
-    } catch (err) {
-      console.error('Error cargando PDF:', err);
-      this.error.set('Error al cargar el documento PDF');
+      this.cdr.detectChanges();
+
+      this.insertCanvasesToDom();
+      this.insertThumbnailsToDom();
+
+    } catch (err: any) {
+      console.error('Error cargando documentos:', err);
+      this.error.set(err.message || 'Error al cargar los documentos');
       this.isLoading.set(false);
     }
   }
 
-  /**
-   * Renderiza una página específica del PDF
-   */
-  private async renderPage(pageNum: number): Promise<void> {
-    // Implementación placeholder
-    console.log(`Renderizando página ${pageNum}`);
-    this.currentPage.set(pageNum);
+  private async renderPageToCanvas(pdfDoc: pdfjsLib.PDFDocumentProxy, pageNum: number): Promise<HTMLCanvasElement> {
+    const page = await pdfDoc.getPage(pageNum);
+    const viewport = page.getViewport({ scale: this.scale() });
+
+    const canvas = document.createElement('canvas');
+    const context = canvas.getContext('2d')!;
+
+    const outputScale = window.devicePixelRatio || 1;
+
+    canvas.width = Math.floor(viewport.width * outputScale);
+    canvas.height = Math.floor(viewport.height * outputScale);
+    canvas.style.width = Math.floor(viewport.width) + 'px';
+    canvas.style.height = Math.floor(viewport.height) + 'px';
+
+    const transform = outputScale !== 1
+      ? [outputScale, 0, 0, outputScale, 0, 0]
+      : undefined;
+
+    const renderContext = {
+      canvasContext: context,
+      viewport: viewport,
+      transform: transform
+    };
+
+    await page.render(renderContext).promise;
+
+    return canvas;
   }
 
-  /**
-   * Navega a la página anterior
-   */
-  previousPage(): void {
-    if (this.currentPage() > 1) {
-      this.renderPage(this.currentPage() - 1);
-    }
+  private async renderThumbnail(pdfDoc: pdfjsLib.PDFDocumentProxy, pageNum: number): Promise<HTMLCanvasElement> {
+    const page = await pdfDoc.getPage(pageNum);
+    const thumbnailScale = 0.2;
+    const viewport = page.getViewport({ scale: thumbnailScale });
+
+    const canvas = document.createElement('canvas');
+    const context = canvas.getContext('2d')!;
+
+    canvas.width = Math.floor(viewport.width);
+    canvas.height = Math.floor(viewport.height);
+    canvas.style.width = Math.floor(viewport.width) + 'px';
+    canvas.style.height = Math.floor(viewport.height) + 'px';
+
+    const renderContext = {
+      canvasContext: context,
+      viewport: viewport
+    };
+
+    await page.render(renderContext).promise;
+
+    return canvas;
   }
 
-  /**
-   * Navega a la página siguiente
-   */
-  nextPage(): void {
-    if (this.currentPage() < this.totalPages()) {
-      this.renderPage(this.currentPage() + 1);
-    }
+  private insertCanvasesToDom(): void {
+    if (!this.pagesContainerRef?.nativeElement) return;
+
+    const container = this.pagesContainerRef.nativeElement;
+    container.innerHTML = '';
+
+    const pages = this.renderedPages();
+
+    pages.forEach((page) => {
+      const pageWrapper = document.createElement('div');
+      pageWrapper.className = 'page-wrapper';
+      pageWrapper.setAttribute('data-page', `${page.pageNumber}`);
+
+      page.canvas.className = 'pdf-page-canvas';
+      pageWrapper.appendChild(page.canvas);
+
+      const pageLabel = document.createElement('div');
+      pageLabel.className = 'page-label';
+      pageLabel.textContent = `Página ${page.pageNumber} de ${page.totalPages}`;
+      pageWrapper.appendChild(pageLabel);
+
+      container.appendChild(pageWrapper);
+    });
   }
 
-  /**
-   * Aumenta el zoom
-   */
-  zoomIn(): void {
+  async zoomIn(): Promise<void> {
     if (this.scale() < 3.0) {
-      this.scale.update(s => s + 0.25);
-      this.renderPage(this.currentPage());
+      this.scale.update(s => Math.round((s + 0.25) * 100) / 100);
+      await this.reRenderAll();
     }
   }
 
-  /**
-   * Reduce el zoom
-   */
-  zoomOut(): void {
+  async zoomOut(): Promise<void> {
     if (this.scale() > 0.5) {
-      this.scale.update(s => s - 0.25);
-      this.renderPage(this.currentPage());
+      this.scale.update(s => Math.round((s - 0.25) * 100) / 100);
+      await this.reRenderAll();
     }
   }
 
-  /**
-   * Resetea el zoom al 100%
-   */
-  resetZoom(): void {
+  async resetZoom(): Promise<void> {
     this.scale.set(1.0);
-    this.renderPage(this.currentPage());
+    await this.reRenderAll();
   }
 
-  /**
-   * Obtiene el porcentaje de zoom actual
-   */
+  private async reRenderAll(): Promise<void> {
+    const docs = this.activeDocuments();
+    if (docs.length > 0) {
+      await this.loadAllDocuments(docs);
+    }
+  }
+
   getZoomPercentage(): number {
     return Math.round(this.scale() * 100);
+  }
+
+  retry(): void {
+    const docs = this.activeDocuments();
+    if (docs.length > 0) {
+      this.loadAllDocuments(docs);
+    }
+  }
+
+  toggleThumbnails(): void {
+    this.showThumbnails.update(v => !v);
+  }
+
+  private insertThumbnailsToDom(): void {
+    if (!this.thumbnailsContainerRef?.nativeElement) return;
+
+    const container = this.thumbnailsContainerRef.nativeElement;
+    container.innerHTML = '';
+
+    const pages = this.renderedPages();
+
+    pages.forEach((page) => {
+      const thumbWrapper = document.createElement('div');
+      thumbWrapper.className = 'thumbnail-wrapper';
+      thumbWrapper.setAttribute('data-global-index', `${page.globalIndex}`);
+
+      if (page.thumbnail) {
+        page.thumbnail.className = 'thumbnail-canvas';
+        thumbWrapper.appendChild(page.thumbnail);
+      }
+
+      const pageNum = document.createElement('div');
+      pageNum.className = 'thumbnail-page-num';
+      pageNum.textContent = `${page.pageNumber}`;
+      thumbWrapper.appendChild(pageNum);
+
+      thumbWrapper.addEventListener('click', () => {
+        this.scrollToPage(page.globalIndex);
+      });
+
+      container.appendChild(thumbWrapper);
+    });
+  }
+
+  scrollToPage(globalIndex: number): void {
+    if (!this.pagesContainerRef?.nativeElement) return;
+
+    const container = this.pagesContainerRef.nativeElement;
+    const pageWrappers = container.querySelectorAll('.page-wrapper');
+
+    if (pageWrappers[globalIndex]) {
+      pageWrappers[globalIndex].scrollIntoView({
+        behavior: 'smooth',
+        block: 'start'
+      });
+    }
   }
 }

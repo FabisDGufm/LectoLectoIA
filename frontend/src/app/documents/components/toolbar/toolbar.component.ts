@@ -8,6 +8,7 @@ import { CommonModule } from '@angular/common';
 import { ThemeService } from '../../../core/services/theme.service';
 import { GreetingService } from '../../../core/services/greeting.service';
 import { DocumentsService } from '../../services/documents.service';
+import { CurrentDocumentService } from '../../services/current-document.service';
 
 @Component({
   selector: 'app-toolbar',
@@ -20,6 +21,7 @@ export class ToolbarComponent {
   private readonly themeService = inject(ThemeService);
   private readonly greetingService = inject(GreetingService);
   private readonly documentsService = inject(DocumentsService);
+  readonly currentDocumentService = inject(CurrentDocumentService);
 
   @ViewChild('fileInput') fileInput?: ElementRef<HTMLInputElement>;
 
@@ -95,16 +97,14 @@ export class ToolbarComponent {
         this.isUploading.set(false);
         this.uploadProgress.set(100);
 
-        // Mostrar mensaje de éxito
-        alert(`¡PDF "${response.data.title}" subido exitosamente!`);
+        // Establecer el documento actual para mostrarlo en el visor
+        const pdfUrl = this.documentsService.getDocumentFileUrl(response.data._id);
+        this.currentDocumentService.setDocument(response.data, pdfUrl);
 
         // Limpiar el input
         if (this.fileInput) {
           this.fileInput.nativeElement.value = '';
         }
-
-        // Recargar la página o actualizar la vista
-        window.location.reload();
       },
       error: (error) => {
         console.error('Error al subir documento:', error);

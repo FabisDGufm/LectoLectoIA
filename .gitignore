@@ -52,8 +52,10 @@ Thumbs.db
 *.swo
 
 # Uploads (archivos subidos por usuarios)
-uploads/*
-!uploads/.gitkeep
+uploads/
+**/uploads/*.pdf
+backend/uploads/*
+!backend/uploads/.gitkeep
 
 # Angular
 .angular/cache

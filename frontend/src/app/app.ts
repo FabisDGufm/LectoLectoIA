@@ -3,10 +3,11 @@
  * LectoLectoIA - Sistema Integral de Lectura y Anotación Digital
  */
 
-import { Component, signal } from '@angular/core';
+import { Component, signal, inject, OnInit } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
 import { ToolbarComponent } from './documents/components/toolbar/toolbar.component';
 import { SplitViewLayoutComponent } from './documents/components/split-view-layout/split-view-layout.component';
+import { CurrentDocumentService } from './documents/services/current-document.service';
 
 @Component({
   selector: 'app-root',
@@ -15,11 +16,13 @@ import { SplitViewLayoutComponent } from './documents/components/split-view-layo
   templateUrl: './app.html',
   styleUrl: './app.scss'
 })
-export class App {
+export class App implements OnInit {
+  private readonly currentDocumentService = inject(CurrentDocumentService);
+
   protected readonly title = signal('LectoLectoIA');
 
-  // Ejemplo de documento para demostración
-  // En producción, esto vendría de la ruta/router
-  demoDocumentId = '123456789';
-  demoPdfUrl = 'assets/sample.pdf'; // Ruta de ejemplo
+  ngOnInit(): void {
+    // Cargar documentos existentes al iniciar la app
+    this.currentDocumentService.loadDocuments();
+  }
 }

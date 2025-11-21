@@ -3,7 +3,7 @@
  * Layout principal que divide la pantalla entre PDF y Notas
  */
 
-import { Component, Input } from '@angular/core';
+import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { PdfViewerPaneComponent } from '../pdf-viewer-pane/pdf-viewer-pane.component';
 import { NotesPaneComponent } from '../notes-pane/notes-pane.component';
@@ -16,9 +16,6 @@ import { NotesPaneComponent } from '../notes-pane/notes-pane.component';
   styleUrls: ['./split-view-layout.component.scss']
 })
 export class SplitViewLayoutComponent {
-  @Input() documentId?: string;
-  @Input() pdfUrl?: string;
-
   // Control de visibilidad de paneles en móvil
   showPdfPanel = true;
   showNotesPanel = true;

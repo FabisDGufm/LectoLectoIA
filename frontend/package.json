@@ -30,7 +30,7 @@
     "@angular/router": "^20.3.0",
     "@popperjs/core": "^2.11.8",
     "bootstrap": "^5.3.8",
-    "pdfjs-dist": "^5.4.394",
+    "pdfjs-dist": "^3.11.174",
     "rxjs": "~7.8.0",
     "tslib": "^2.3.0",
     "zone.js": "~0.15.0"
