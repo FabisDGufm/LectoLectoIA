@@ -47,6 +47,16 @@ const documentSchema = new mongoose.Schema(
       enum: ['pending', 'extracting', 'completed', 'failed'],
       default: 'pending'
     },
+    // Texto extraído del documento (OCR/extracción)
+    extractedText: {
+      type: String,
+      default: ''
+    },
+    // Texto por página (para contexto más preciso)
+    extractedPages: [{
+      pageNumber: Number,
+      text: String
+    }],
     // Metadatos adicionales
     metadata: {
       author: String,

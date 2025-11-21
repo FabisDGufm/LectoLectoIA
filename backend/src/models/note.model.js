@@ -135,15 +135,21 @@ const noteSchema = new mongoose.Schema(
 
 // Validación personalizada: asegurar que text o ink estén presentes según el mode
 noteSchema.pre('validate', function(next) {
-  if (this.mode === 'text') {
-    if (!this.text || this.text.trim().length === 0) {
-      return next(new Error('El texto es obligatorio para notas en modo texto'));
-    }
-  } else if (this.mode === 'ink') {
-    if (!this.ink || (!this.ink.svgPath && (!this.ink.strokes || this.ink.strokes.length === 0))) {
-      return next(new Error('Los trazos son obligatorios para notas en modo tinta'));
-    }
+  const hasText = this.text && this.text.trim().length > 0;
+  const hasInk = this.ink && this.ink.strokes && this.ink.strokes.length > 0;
+
+  // Al menos debe tener texto o trazos
+  if (!hasText && !hasInk) {
+    return next(new Error('La nota debe tener texto o trazos'));
   }
+
+  // Validar según el modo
+  if (this.mode === 'text' && !hasText) {
+    return next(new Error('El texto es obligatorio para notas en modo texto'));
+  } else if (this.mode === 'ink' && !hasInk) {
+    return next(new Error('Los trazos son obligatorios para notas en modo tinta'));
+  }
+
   next();
 });
 

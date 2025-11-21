@@ -39,8 +39,10 @@ const extractText = asyncHandler(async (req, res, next) => {
       }
     );
 
-    // Actualizar estado a 'completed'
+    // Guardar texto extraído en el documento
     document.processingStatus = 'completed';
+    document.extractedText = response.data.text || '';
+    document.extractedPages = response.data.pages || [];
     await document.save();
 
     res.status(200).json({
@@ -49,7 +51,8 @@ const extractText = asyncHandler(async (req, res, next) => {
       data: {
         documentId: document._id,
         extractedText: response.data.text,
-        pages: response.data.pages || []
+        pages: response.data.pages || [],
+        totalPages: response.data.totalPages || 0
       }
     });
   } catch (error) {

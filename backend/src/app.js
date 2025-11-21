@@ -19,6 +19,7 @@ const notesRoutes = require('./routes/notes.routes');
 const processRoutes = require('./routes/process.routes');
 const exportRoutes = require('./routes/export.routes');
 const notebookRoutes = require('./routes/notebook.routes');
+const chatRoutes = require('./routes/chat.routes');
 
 // Crear aplicación Express
 const app = express();
@@ -116,6 +117,7 @@ app.use('/api/notes', notesRoutes);
 app.use('/api/process', processRoutes);
 app.use('/api/export', exportRoutes);
 app.use('/api/notebooks', notebookRoutes);
+app.use('/api/chat', chatRoutes);
 
 // ============================================
 // MANEJO DE ERRORES

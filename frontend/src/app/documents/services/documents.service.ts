@@ -166,4 +166,41 @@ export class DocumentsService {
     document.body.removeChild(link);
     window.URL.revokeObjectURL(url);
   }
+
+  // ============================================
+  // MÉTODOS DE PROCESAMIENTO (OCR/Extracción)
+  // ============================================
+
+  private processApiUrl = `${environment.apiUrl}/process`;
+
+  /**
+   * Extrae texto de un documento PDF
+   */
+  extractText(documentId: string): Observable<{
+    success: boolean;
+    message: string;
+    data: {
+      documentId: string;
+      extractedText: string;
+      pages: { pageNumber: number; text: string }[];
+      totalPages: number;
+    };
+  }> {
+    return this.http.post<any>(`${this.processApiUrl}/${documentId}/extract`, {});
+  }
+
+  /**
+   * Aplica OCR a un documento escaneado
+   */
+  applyOCR(documentId: string, language: string = 'spa'): Observable<{
+    success: boolean;
+    message: string;
+    data: {
+      documentId: string;
+      extractedText: string;
+      confidence: number;
+    };
+  }> {
+    return this.http.post<any>(`${this.processApiUrl}/${documentId}/ocr`, { language });
+  }
 }

@@ -14,6 +14,7 @@ from flask_cors import CORS
 import os
 import sys
 from dotenv import load_dotenv
+import pdfplumber
 
 # Configurar encoding UTF-8 para Windows
 if sys.platform == 'win32':
@@ -84,7 +85,7 @@ def index():
 @app.route('/api/extract', methods=['POST'])
 def extract_text():
     """
-    Extrae texto de un documento PDF
+    Extrae texto de un documento PDF usando pdfplumber
 
     Request Body:
     {
@@ -111,20 +112,35 @@ def extract_text():
         file_path = data['filePath']
         document_id = data.get('documentId')
 
-        # TODO: Implementar extracción real con PyPDF2 o pdfplumber
-        # from services.text_extractor import extract_text_from_pdf
-        # result = extract_text_from_pdf(file_path)
+        # Verificar que el archivo existe
+        if not os.path.exists(file_path):
+            return jsonify({
+                'success': False,
+                'error': f'Archivo no encontrado: {file_path}'
+            }), 404
 
-        # Placeholder
+        # Extraer texto con pdfplumber
+        pages_data = []
+        full_text = []
+
+        with pdfplumber.open(file_path) as pdf:
+            for i, page in enumerate(pdf.pages):
+                page_text = page.extract_text() or ''
+                pages_data.append({
+                    'pageNumber': i + 1,
+                    'text': page_text
+                })
+                full_text.append(f"--- Página {i + 1} ---\n{page_text}")
+
+        combined_text = '\n\n'.join(full_text)
+
         result = {
             'success': True,
             'message': 'Texto extraído exitosamente',
             'documentId': document_id,
-            'text': f'Texto extraído del PDF: {file_path}',
-            'pages': [
-                {'pageNumber': 1, 'text': 'Contenido de página 1...'},
-                {'pageNumber': 2, 'text': 'Contenido de página 2...'}
-            ]
+            'text': combined_text,
+            'pages': pages_data,
+            'totalPages': len(pages_data)
         }
 
         return jsonify(result), 200

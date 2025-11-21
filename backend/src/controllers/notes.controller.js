@@ -13,7 +13,7 @@ const { AppError, asyncHandler } = require('../middleware/error-handler');
  * @access  Public
  */
 const createNote = asyncHandler(async (req, res, next) => {
-  const { documentId, pageIndex, anchors, text, tags, color } = req.body;
+  const { documentId, pageIndex, anchors, text, tags, color, mode, ink } = req.body;
 
   // Validar que el documento existe
   const documentExists = await Document.findById(documentId);
@@ -21,7 +21,7 @@ const createNote = asyncHandler(async (req, res, next) => {
     return next(new AppError('El documento especificado no existe', 404));
   }
 
-  // Validar que el pageIndex es válido
+  // Validar que el pageIndex es válido (solo si el documento tiene páginas definidas)
   if (documentExists.pages > 0 && pageIndex >= documentExists.pages) {
     return next(
       new AppError(
@@ -35,8 +35,10 @@ const createNote = asyncHandler(async (req, res, next) => {
   const note = await Note.create({
     documentId,
     pageIndex,
+    mode: mode || 'text',
     anchors: anchors || [],
     text,
+    ink,
     tags: tags || [],
     color: color || '#ffd700'
   });
@@ -133,7 +135,7 @@ const getNoteById = asyncHandler(async (req, res, next) => {
  */
 const updateNote = asyncHandler(async (req, res, next) => {
   // Campos permitidos para actualización
-  const allowedFields = ['text', 'anchors', 'tags', 'color', 'isFavorite', 'pageIndex'];
+  const allowedFields = ['text', 'anchors', 'tags', 'color', 'isFavorite', 'pageIndex', 'mode', 'ink'];
   const updates = {};
 
   allowedFields.forEach(field => {

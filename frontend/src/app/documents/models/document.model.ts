@@ -3,6 +3,11 @@
  * Interfaz TypeScript que representa un documento en el sistema
  */
 
+export interface ExtractedPage {
+  pageNumber: number;
+  text: string;
+}
+
 export interface Document {
   _id: string;
   title: string;
@@ -12,6 +17,8 @@ export interface Document {
   storagePath: string;
   pages: number;
   processingStatus: 'pending' | 'extracting' | 'completed' | 'failed';
+  extractedText?: string; // Texto extraído del documento
+  extractedPages?: ExtractedPage[]; // Texto por página
   metadata?: DocumentMetadata;
   createdAt: Date;
   updatedAt: Date;

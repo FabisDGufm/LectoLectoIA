@@ -46,6 +46,87 @@
           </span>
         </div>
 
+        <!-- Drawing Tools -->
+        <div class="controls-group drawing-tools">
+          <button
+            type="button"
+            class="btn btn-sm btn-tool"
+            [class.active]="currentTool() === 'none'"
+            (click)="setTool('none')"
+            title="Modo navegación (sin dibujo)">
+            👆
+          </button>
+
+          <button
+            type="button"
+            class="btn btn-sm btn-tool"
+            [class.active]="currentTool() === 'pen'"
+            (click)="setTool('pen')"
+            title="Lápiz">
+            ✏️
+          </button>
+
+          <button
+            type="button"
+            class="btn btn-sm btn-tool"
+            [class.active]="currentTool() === 'highlighter'"
+            (click)="setTool('highlighter')"
+            title="Resaltador">
+            🖍️
+          </button>
+
+          <button
+            type="button"
+            class="btn btn-sm btn-tool"
+            [class.active]="currentTool() === 'eraser'"
+            (click)="setTool('eraser')"
+            title="Borrador">
+            🧹
+          </button>
+
+          <button
+            type="button"
+            class="btn btn-sm btn-tool"
+            [class.active]="currentTool() === 'text'"
+            (click)="setTool('text')"
+            title="Texto">
+            T
+          </button>
+
+          <div class="tool-separator"></div>
+
+          <!-- Color picker for pen -->
+          @if (currentTool() === 'pen') {
+            <input
+              type="color"
+              class="color-picker"
+              [value]="penColor()"
+              (input)="setPenColor($any($event.target).value)"
+              title="Color del lápiz">
+
+            <select
+              class="width-select"
+              [value]="penWidth()"
+              (change)="setPenWidth(+$any($event.target).value)"
+              title="Grosor del lápiz">
+              <option value="1">Fino</option>
+              <option value="2">Normal</option>
+              <option value="4">Medio</option>
+              <option value="8">Grueso</option>
+            </select>
+          }
+
+          <!-- Color picker for highlighter -->
+          @if (currentTool() === 'highlighter') {
+            <input
+              type="color"
+              class="color-picker"
+              [value]="highlighterColor()"
+              (input)="setHighlighterColor($any($event.target).value)"
+              title="Color del resaltador">
+          }
+        </div>
+
         <div class="controls-group">
           <button
             type="button"
