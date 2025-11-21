@@ -54,10 +54,16 @@ export class NotesPaneComponent implements OnInit, AfterViewChecked {
     );
   });
 
+  // Usar directamente el primer documento del servicio como computed reactivo
+  currentDoc = computed(() => {
+    const doc = this.currentDocumentService.currentDocument();
+    console.log('[NotesPaneChat] currentDoc computed:', doc?.title, 'hasExtractedText:', !!doc?.extractedText);
+    return doc;
+  });
+
   ngOnInit(): void {
-    if (this.documentId) {
-      this.loadNotes();
-    }
+    // Cargar notas (todas si no hay documentId específico)
+    this.loadNotes();
 
     // Suscribirse a cambios en notas
     this.notesService.notes$.subscribe(notes => {
@@ -66,16 +72,19 @@ export class NotesPaneComponent implements OnInit, AfterViewChecked {
   }
 
   /**
-   * Carga las notas del documento
+   * Carga las notas (del documento específico o todas)
    */
   loadNotes(): void {
-    if (!this.documentId) return;
-
     this.isLoading.set(true);
-    this.notesService.getAllNotes({ documentId: this.documentId })
+
+    // Si hay documentId específico, cargar solo esas notas; sino cargar todas
+    const params = this.documentId ? { documentId: this.documentId } : { limit: 100 };
+
+    this.notesService.getAllNotes(params)
       .subscribe({
         next: (response) => {
           this.notes.set(response.data);
+          console.log('[NotesPaneChat] Notas cargadas:', response.data.length);
           this.isLoading.set(false);
         },
         error: (error) => {
@@ -231,16 +240,18 @@ export class NotesPaneComponent implements OnInit, AfterViewChecked {
   private buildDocumentContext(): string {
     const contextParts: string[] = [];
 
-    // 1. Agregar texto extraído del documento (OCR)
-    const currentDoc = this.currentDocumentService.currentDocument();
-    if (currentDoc?.extractedText) {
+    // 1. Agregar texto extraído del documento
+    const doc = this.currentDoc();
+    console.log('[NotesPaneChat] buildDocumentContext - doc:', doc?.title, 'extractedText length:', doc?.extractedText?.length || 0);
+
+    if (doc?.extractedText) {
       // Limitar el texto a ~8000 caracteres para no exceder límites de tokens
       const maxLength = 8000;
-      let docText = currentDoc.extractedText;
+      let docText = doc.extractedText;
       if (docText.length > maxLength) {
         docText = docText.substring(0, maxLength) + '\n... [texto truncado por longitud]';
       }
-      contextParts.push(`CONTENIDO DEL DOCUMENTO "${currentDoc.title}":\n${docText}`);
+      contextParts.push(`CONTENIDO DEL DOCUMENTO "${doc.title}":\n${docText}`);
     }
 
     // 2. Agregar notas del usuario
@@ -272,6 +283,8 @@ export class NotesPaneComponent implements OnInit, AfterViewChecked {
 
     // Construir contexto de las notas para dar al chat
     const context = this.buildDocumentContext();
+    console.log('[NotesPaneChat] Enviando mensaje con contexto:', context ? `${context.length} caracteres` : 'SIN CONTEXTO');
+    console.log('[NotesPaneChat] Primeros 200 chars del contexto:', context?.substring(0, 200));
 
     this.chatService.sendMessage(message, context).subscribe({
       next: (response) => {
@@ -305,6 +318,44 @@ export class NotesPaneComponent implements OnInit, AfterViewChecked {
    */
   clearChat(): void {
     this.chatService.clearMessages();
+  }
+
+  /**
+   * Extrae texto del documento actual
+   */
+  extractDocumentText(): void {
+    const doc = this.currentDoc();
+    if (!doc || this.isExtracting()) return;
+
+    this.isExtracting.set(true);
+    console.log('[NotesPaneChat] Iniciando extracción de texto para:', doc.title, 'ID:', doc._id);
+
+    this.documentsService.extractText(doc._id).subscribe({
+      next: (response) => {
+        console.log('[NotesPaneChat] Respuesta de extracción:', response);
+        if (response.success && response.data) {
+          console.log('[NotesPaneChat] Texto extraído exitosamente:', response.data.totalPages, 'páginas, longitud:', response.data.extractedText?.length);
+
+          // Actualizar el documento local con el texto extraído
+          const updatedDoc = {
+            ...doc,
+            extractedText: response.data.extractedText,
+            extractedPages: response.data.pages,
+            processingStatus: 'completed' as const
+          };
+          this.currentDocumentService.updateDocument(updatedDoc);
+
+          // Recargar documentos para asegurar sincronización
+          this.currentDocumentService.loadDocuments();
+        }
+        this.isExtracting.set(false);
+      },
+      error: (err) => {
+        console.error('[NotesPaneChat] Error extrayendo texto:', err);
+        alert('Error al extraer texto. Verifica que el servicio Python esté corriendo en puerto 5000.');
+        this.isExtracting.set(false);
+      }
+    });
   }
 
   /**

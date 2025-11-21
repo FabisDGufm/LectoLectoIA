@@ -32,6 +32,9 @@ const sendMessage = asyncHandler(async (req, res) => {
   }
 
   try {
+    console.log('[ChatController] Mensaje recibido:', message);
+    console.log('[ChatController] Contexto recibido:', context ? `${context.length} caracteres` : 'Sin contexto');
+
     // Construir el prompt con contexto del documento si existe
     let systemPrompt = `Eres un asistente de estudio inteligente llamado "LectoIA".
 Tu rol es ayudar a los estudiantes a comprender mejor sus documentos PDF y tomar notas efectivas.

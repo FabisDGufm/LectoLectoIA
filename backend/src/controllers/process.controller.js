@@ -6,6 +6,7 @@
 const Document = require('../models/document.model');
 const { AppError, asyncHandler } = require('../middleware/error-handler');
 const axios = require('axios');
+const path = require('path');
 
 // URL del servicio Python (desde variable de entorno)
 const PYTHON_SERVICE_URL = process.env.PYTHON_SERVICE_URL || 'http://localhost:5000';
@@ -27,12 +28,16 @@ const extractText = asyncHandler(async (req, res, next) => {
   await document.save();
 
   try {
+    // Convertir ruta relativa a absoluta
+    const absolutePath = path.resolve(__dirname, '..', '..', document.storagePath);
+    console.log('Extrayendo texto de:', absolutePath);
+
     // Llamar al servicio Python para extracción de texto
     const response = await axios.post(
       `${PYTHON_SERVICE_URL}/api/extract`,
       {
         documentId: document._id.toString(),
-        filePath: document.storagePath
+        filePath: absolutePath
       },
       {
         timeout: 300000 // 5 minutos timeout para documentos grandes

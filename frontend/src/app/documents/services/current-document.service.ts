@@ -119,4 +119,19 @@ export class CurrentDocumentService {
     // En modo secuencial, esto no hace nada especial
     console.log('Documento en visor:', document.title);
   }
+
+  /**
+   * Actualiza un documento existente en el visor (por ejemplo, después de extraer texto)
+   */
+  updateDocument(updatedDocument: Document): void {
+    this._activeDocuments.update(docs =>
+      docs.map(d => {
+        if (d.document._id === updatedDocument._id) {
+          return { ...d, document: updatedDocument };
+        }
+        return d;
+      })
+    );
+    console.log('Documento actualizado:', updatedDocument.title);
+  }
 }

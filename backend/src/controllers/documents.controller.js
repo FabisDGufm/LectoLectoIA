@@ -101,11 +101,12 @@ const getAllDocuments = asyncHandler(async (req, res, next) => {
   }
 
   // Ejecutar consulta con paginación
+  // Incluir extractedText para que el chat tenga acceso al contenido
   const documents = await Document.find(filter)
     .sort({ createdAt: -1 }) // Más recientes primero
     .skip(skip)
     .limit(limit)
-    .select('-__v'); // Excluir campo de versión
+    .select('-__v -extractedPages'); // Excluir solo versión y páginas detalladas (muy grandes)
 
   // Contar total de documentos para paginación
   const total = await Document.countDocuments(filter);

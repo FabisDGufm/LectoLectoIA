@@ -177,22 +177,34 @@
         @if (chatService.messages().length === 0) {
           <div class="chat-welcome">
             <p>Hola! Soy <strong>LectoIA</strong>, tu asistente de estudio.</p>
-            @if (currentDocumentService.currentDocument()?.extractedText) {
-              <p>Tengo acceso al contenido del documento y a tus notas ({{ notes().length }}). Puedo ayudarte a:</p>
-              <ul>
-                <li>Resumir el documento o secciones</li>
-                <li>Explicar conceptos del texto</li>
-                <li>Crear preguntas de estudio</li>
-                <li>Generar flashcards</li>
-                <li>Responder preguntas sobre el contenido</li>
-              </ul>
+            <p>Tengo acceso a tus notas ({{ notes().length }}). Puedo ayudarte a:</p>
+            <ul>
+              <li>Resumir el documento o secciones</li>
+              <li>Explicar conceptos del texto</li>
+              <li>Crear preguntas de estudio</li>
+              <li>Generar flashcards</li>
+            </ul>
+
+            <!-- Estado del documento -->
+            @if (currentDoc()) {
+              @if (currentDoc()?.extractedText) {
+                <p class="text-success small">Documento listo: {{ currentDoc()?.extractedText?.length }} caracteres extraídos</p>
+              } @else {
+                <button
+                  class="btn btn-sm btn-primary mt-2 mb-2"
+                  (click)="extractDocumentText()"
+                  [disabled]="isExtracting()">
+                  @if (isExtracting()) {
+                    <span class="spinner-border spinner-border-sm me-1"></span>
+                    Extrayendo...
+                  } @else {
+                    Extraer texto del PDF
+                  }
+                </button>
+                <small class="d-block text-muted">Requiere servicio Python (puerto 5000)</small>
+              }
             } @else {
-              <p>Tengo acceso a tus notas ({{ notes().length }}). Para acceder al texto del documento, ejecuta la extraccion de texto.</p>
-              <ul>
-                <li>Resumir tus notas</li>
-                <li>Explicar conceptos de tus apuntes</li>
-                <li>Crear preguntas de estudio</li>
-              </ul>
+              <small class="text-warning">Cargando documento...</small>
             }
           </div>
         }
