@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy, signal, ElementRef, ViewChild, AfterViewInit, ChangeDetectorRef, inject, effect, HostListener } from '@angular/core';
+import { Component, OnInit, OnDestroy, signal, ElementRef, ViewChild, AfterViewInit, ChangeDetectorRef, inject, effect } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import * as pdfjsLib from 'pdfjs-dist';
 import { NotebookService, NotebookPage } from '../../services/notebook.service';
@@ -33,6 +33,7 @@ export class PdfViewerPaneComponent implements OnInit, OnDestroy, AfterViewInit 
   @ViewChild('thumbnailsContainer', { static: false }) thumbnailsContainerRef!: ElementRef<HTMLDivElement>;
 
   scale = signal(1.0);
+  viewScale = signal(1.0);
   isLoading = signal(false);
   error = signal<string | null>(null);
   renderedPages = signal<RenderedPage[]>([]);
@@ -42,6 +43,14 @@ export class PdfViewerPaneComponent implements OnInit, OnDestroy, AfterViewInit 
 
   private loadedPdfs: Map<string, pdfjsLib.PDFDocumentProxy> = new Map();
   private isDestroyed = false;
+
+  private isPanning = false;
+  private startX = 0;
+  private startY = 0;
+  private scrollLeft = 0;
+  private scrollTop = 0;
+  private lastTouchDistance = 0;
+  private initialPinchScale = 1;
 
   pages = this.notebookService.pages;
   hasPages = this.notebookService.hasPages;
@@ -61,7 +70,147 @@ export class PdfViewerPaneComponent implements OnInit, OnDestroy, AfterViewInit 
     });
   }
 
-  ngAfterViewInit(): void {}
+  ngAfterViewInit(): void {
+    this.setupZoomAndPan();
+  }
+
+  private setupZoomAndPan(): void {
+    setTimeout(() => this.attachZoomListeners(), 500);
+  }
+
+  private attachZoomListeners(): void {
+    const container = this.pagesContainerRef?.nativeElement;
+    if (!container) {
+      setTimeout(() => this.attachZoomListeners(), 200);
+      return;
+    }
+
+    container.addEventListener('wheel', this.handleWheel.bind(this), { passive: false });
+    container.addEventListener('mousedown', this.handleMouseDown.bind(this));
+    container.addEventListener('mousemove', this.handleMouseMove.bind(this));
+    container.addEventListener('mouseup', this.handleMouseUp.bind(this));
+    container.addEventListener('mouseleave', this.handleMouseUp.bind(this));
+    container.addEventListener('touchstart', this.handleTouchStart.bind(this), { passive: false });
+    container.addEventListener('touchmove', this.handleTouchMove.bind(this), { passive: false });
+    container.addEventListener('touchend', this.handleTouchEnd.bind(this));
+  }
+
+  private handleWheel(e: WheelEvent): void {
+    if (e.ctrlKey) {
+      e.preventDefault();
+      const delta = e.deltaY > 0 ? -0.1 : 0.1;
+      const newScale = Math.min(3.0, Math.max(0.3, this.viewScale() + delta));
+      this.viewScale.set(Math.round(newScale * 100) / 100);
+      this.applyViewScale();
+    }
+  }
+
+  private handleMouseDown(e: MouseEvent): void {
+    const container = this.pagesContainerRef?.nativeElement;
+    if (!container) return;
+    if (e.button === 1 || (e.button === 0 && e.shiftKey)) {
+      this.isPanning = true;
+      this.startX = e.clientX;
+      this.startY = e.clientY;
+      this.scrollLeft = container.scrollLeft;
+      this.scrollTop = container.scrollTop;
+      container.style.cursor = 'grabbing';
+      e.preventDefault();
+    }
+  }
+
+  private handleMouseMove(e: MouseEvent): void {
+    if (!this.isPanning) return;
+    const container = this.pagesContainerRef?.nativeElement;
+    if (!container) return;
+    e.preventDefault();
+    const walkX = e.clientX - this.startX;
+    const walkY = e.clientY - this.startY;
+    container.scrollLeft = this.scrollLeft - walkX;
+    container.scrollTop = this.scrollTop - walkY;
+  }
+
+  private handleMouseUp(): void {
+    const container = this.pagesContainerRef?.nativeElement;
+    if (container) container.style.cursor = 'default';
+    this.isPanning = false;
+  }
+
+  private handleTouchStart(e: TouchEvent): void {
+    const container = this.pagesContainerRef?.nativeElement;
+    if (!container) return;
+
+    if (e.touches.length === 2) {
+      e.preventDefault();
+      this.lastTouchDistance = this.getTouchDistance(e.touches);
+      this.initialPinchScale = this.viewScale();
+      this.isPanning = false;
+    } else if (e.touches.length === 1) {
+      this.isPanning = true;
+      this.startX = e.touches[0].clientX;
+      this.startY = e.touches[0].clientY;
+      this.scrollLeft = container.scrollLeft;
+      this.scrollTop = container.scrollTop;
+    }
+  }
+
+  private handleTouchMove(e: TouchEvent): void {
+    const container = this.pagesContainerRef?.nativeElement;
+    if (!container) return;
+
+    if (e.touches.length === 2) {
+      e.preventDefault();
+      const currentDistance = this.getTouchDistance(e.touches);
+      if (this.lastTouchDistance > 0) {
+        const scaleFactor = currentDistance / this.lastTouchDistance;
+        const newScale = Math.min(3.0, Math.max(0.3, this.initialPinchScale * scaleFactor));
+        this.viewScale.set(Math.round(newScale * 100) / 100);
+        this.applyViewScale();
+      }
+    } else if (e.touches.length === 1 && this.isPanning) {
+      e.preventDefault();
+      const walkX = e.touches[0].clientX - this.startX;
+      const walkY = e.touches[0].clientY - this.startY;
+      container.scrollLeft = this.scrollLeft - walkX;
+      container.scrollTop = this.scrollTop - walkY;
+    }
+  }
+
+  private handleTouchEnd(e: TouchEvent): void {
+    if (e.touches.length === 0) {
+      this.isPanning = false;
+      this.lastTouchDistance = 0;
+    }
+  }
+
+  private getTouchDistance(touches: TouchList): number {
+    if (touches.length < 2) return 0;
+    const dx = touches[0].clientX - touches[1].clientX;
+    const dy = touches[0].clientY - touches[1].clientY;
+    return Math.sqrt(dx * dx + dy * dy);
+  }
+
+  private applyViewScale(): void {
+    const container = this.pagesContainerRef?.nativeElement;
+    if (!container) return;
+
+    const scale = this.viewScale();
+
+    // Escalar todos los canvas
+    const canvases = container.querySelectorAll('canvas');
+    canvases.forEach((canvas: HTMLCanvasElement) => {
+      const originalWidth = canvas.width / (window.devicePixelRatio || 1);
+      const originalHeight = canvas.height / (window.devicePixelRatio || 1);
+      canvas.style.width = Math.floor(originalWidth * scale) + 'px';
+      canvas.style.height = Math.floor(originalHeight * scale) + 'px';
+    });
+
+    // Escalar gap del contenedor principal entre spreads/páginas
+    const zoomContent = container.querySelector('.zoom-content') as HTMLElement;
+    if (zoomContent) {
+      zoomContent.style.gap = Math.floor(24 * scale) + 'px';
+    }
+  }
 
   ngOnDestroy(): void {
     this.isDestroyed = true;
@@ -228,6 +377,14 @@ export class PdfViewerPaneComponent implements OnInit, OnDestroy, AfterViewInit 
     const container = this.pagesContainerRef.nativeElement;
     container.innerHTML = '';
 
+    const zoomContent = document.createElement('div');
+    zoomContent.className = 'zoom-content';
+    zoomContent.style.display = 'flex';
+    zoomContent.style.flexDirection = 'column';
+    zoomContent.style.alignItems = 'center';
+    zoomContent.style.gap = '1.5rem';
+    zoomContent.style.padding = '2rem 4rem';
+
     const pages = this.renderedPages();
     const isBookMode = this.bookMode();
 
@@ -235,12 +392,14 @@ export class PdfViewerPaneComponent implements OnInit, OnDestroy, AfterViewInit 
       pages.forEach((page, index) => {
         const spread = document.createElement('div');
         spread.className = 'book-spread';
-        spread.style.display = 'flex';
-        spread.style.flexDirection = 'row';
-        spread.style.flexWrap = 'nowrap';
-        spread.style.alignItems = 'flex-start';
-        spread.style.justifyContent = 'center';
-        spread.style.gap = '4px';
+        spread.style.cssText = `
+          display: flex !important;
+          flex-direction: row !important;
+          flex-wrap: nowrap !important;
+          align-items: flex-start !important;
+          justify-content: center !important;
+          gap: 0 !important;
+        `;
 
         const leftPage = this.createPageElement(page, index);
         leftPage.classList.add('left-page');
@@ -252,14 +411,16 @@ export class PdfViewerPaneComponent implements OnInit, OnDestroy, AfterViewInit 
         rightPage.style.flex = '0 0 auto';
         spread.appendChild(rightPage);
 
-        container.appendChild(spread);
+        zoomContent.appendChild(spread);
       });
     } else {
       pages.forEach((page, index) => {
         const pageWrapper = this.createPageElement(page, index);
-        container.appendChild(pageWrapper);
+        zoomContent.appendChild(pageWrapper);
       });
     }
+
+    container.appendChild(zoomContent);
   }
 
   private createPageElement(page: RenderedPage, index: number): HTMLDivElement {
@@ -413,34 +574,27 @@ export class PdfViewerPaneComponent implements OnInit, OnDestroy, AfterViewInit 
     }
   }
 
-  async zoomIn(): Promise<void> {
-    if (this.scale() < 3.0) {
-      this.scale.update(s => Math.round((s + 0.25) * 100) / 100);
-      await this.reRenderAll();
+  zoomIn(): void {
+    if (this.viewScale() < 3.0) {
+      this.viewScale.update(s => Math.round((s + 0.1) * 100) / 100);
+      this.applyViewScale();
     }
   }
 
-  async zoomOut(): Promise<void> {
-    if (this.scale() > 0.5) {
-      this.scale.update(s => Math.round((s - 0.25) * 100) / 100);
-      await this.reRenderAll();
+  zoomOut(): void {
+    if (this.viewScale() > 0.3) {
+      this.viewScale.update(s => Math.round((s - 0.1) * 100) / 100);
+      this.applyViewScale();
     }
   }
 
-  async resetZoom(): Promise<void> {
-    this.scale.set(1.0);
-    await this.reRenderAll();
-  }
-
-  private async reRenderAll(): Promise<void> {
-    const notebookPages = this.pages();
-    if (notebookPages.length > 0) {
-      await this.loadNotebookPages(notebookPages);
-    }
+  resetZoom(): void {
+    this.viewScale.set(1.0);
+    this.applyViewScale();
   }
 
   getZoomPercentage(): number {
-    return Math.round(this.scale() * 100);
+    return Math.round(this.viewScale() * 100);
   }
 
   retry(): void {

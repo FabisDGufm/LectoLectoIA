@@ -333,6 +333,7 @@
   background: linear-gradient(135deg,
     var(--color-bg-secondary) 0%,
     var(--color-bg-primary) 100%);
+  touch-action: none;
 
   &::-webkit-scrollbar {
     width: 12px;
@@ -362,24 +363,11 @@
   flex-direction: row !important;
   flex-wrap: nowrap !important;
   align-items: flex-start;
-  gap: 0;
-  box-shadow: var(--shadow-lg);
-  background: #8b7355;
-  padding: 8px;
-  border-radius: 4px;
 
   > .page-wrapper {
     flex: 0 0 auto;
     margin: 0;
-
-    &.left-page {
-      border-right: 3px solid #6b5344;
-      padding-right: 4px;
-    }
-
-    &.right-page {
-      padding-left: 4px;
-    }
+    gap: 0;
 
     .page-label {
       font-size: 0.75rem;

@@ -60,8 +60,8 @@
             type="button"
             class="btn btn-sm btn-outline-secondary"
             (click)="zoomOut()"
-            [disabled]="scale() <= 0.5"
-            title="Reducir zoom">
+            [disabled]="viewScale() <= 0.3"
+            title="Reducir zoom (Ctrl + Scroll)">
             −
           </button>
 
@@ -73,8 +73,8 @@
             type="button"
             class="btn btn-sm btn-outline-secondary"
             (click)="zoomIn()"
-            [disabled]="scale() >= 3.0"
-            title="Aumentar zoom">
+            [disabled]="viewScale() >= 3.0"
+            title="Aumentar zoom (Ctrl + Scroll)">
             +
           </button>
 
@@ -82,8 +82,8 @@
             type="button"
             class="btn btn-sm btn-outline-secondary"
             (click)="resetZoom()"
-            title="Resetear zoom">
-            Ajustar
+            title="Resetear zoom a 100%">
+            100%
           </button>
         </div>
       </div>
