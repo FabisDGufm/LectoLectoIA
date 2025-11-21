@@ -4,10 +4,12 @@
  */
 
 const Document = require('../models/document.model');
+const Notebook = require('../models/notebook.model');
 const { AppError, asyncHandler } = require('../middleware/error-handler');
 const { deleteFile } = require('../middleware/upload.middleware');
 const path = require('path');
 const fs = require('fs').promises;
+const { PDFDocument } = require('pdf-lib');
 
 /**
  * @desc    Subir nuevo documento
@@ -15,22 +17,56 @@ const fs = require('fs').promises;
  * @access  Public (por ahora, en fase base)
  */
 const uploadDocument = asyncHandler(async (req, res, next) => {
-  // El archivo viene de req.file gracias a Multer
   if (!req.file) {
     return next(new AppError('No se ha proporcionado ningún archivo', 400));
   }
 
   const { title } = req.body;
 
-  // Crear documento en la base de datos
+  let pageCount = 1;
+  try {
+    const pdfBuffer = await fs.readFile(req.file.path);
+    const pdfDoc = await PDFDocument.load(pdfBuffer);
+    pageCount = pdfDoc.getPageCount();
+    console.log('Páginas detectadas:', pageCount);
+  } catch (err) {
+    console.log('No se pudo contar páginas del PDF:', err.message);
+  }
+
   const document = await Document.create({
-    title: title || req.file.originalname, // Usar nombre original si no hay título
+    title: title || req.file.originalname,
     originalName: req.file.originalname,
     mimeType: req.file.mimetype,
     size: req.file.size,
     storagePath: req.file.path,
-    processingStatus: 'pending'
+    pages: pageCount,
+    processingStatus: 'completed'
   });
+
+  let notebook = await Notebook.findOne({ isActive: true });
+  if (!notebook) {
+    notebook = await Notebook.create({
+      name: 'Mi Cuaderno',
+      pages: [],
+      isActive: true
+    });
+  }
+
+  const currentMaxOrder = notebook.pages.length > 0
+    ? Math.max(...notebook.pages.map(p => p.order))
+    : -1;
+
+  for (let i = 1; i <= pageCount; i++) {
+    notebook.pages.push({
+      type: 'pdf',
+      documentId: document._id,
+      pageNumber: i,
+      order: currentMaxOrder + i,
+      visible: true
+    });
+  }
+
+  await notebook.save();
 
   res.status(201).json({
     success: true,

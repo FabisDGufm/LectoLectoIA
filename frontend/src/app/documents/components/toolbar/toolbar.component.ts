@@ -1,14 +1,9 @@
-/**
- * Componente Toolbar
- * Barra de herramientas superior con controles principales
- */
-
 import { Component, inject, computed, signal, ElementRef, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ThemeService } from '../../../core/services/theme.service';
 import { GreetingService } from '../../../core/services/greeting.service';
 import { DocumentsService } from '../../services/documents.service';
-import { CurrentDocumentService } from '../../services/current-document.service';
+import { NotebookService } from '../../services/notebook.service';
 
 @Component({
   selector: 'app-toolbar',
@@ -21,56 +16,40 @@ export class ToolbarComponent {
   private readonly themeService = inject(ThemeService);
   private readonly greetingService = inject(GreetingService);
   private readonly documentsService = inject(DocumentsService);
-  readonly currentDocumentService = inject(CurrentDocumentService);
+  private readonly notebookService = inject(NotebookService);
 
   @ViewChild('fileInput') fileInput?: ElementRef<HTMLInputElement>;
 
-  // Estado del componente
   isUploading = signal(false);
   uploadProgress = signal(0);
 
-  // Computed properties para reactividad
   isDarkMode = computed(() => this.themeService.theme() === 'dark');
   greeting = computed(() => this.greetingService.greeting());
 
-  /**
-   * Alterna entre modo claro y oscuro
-   */
   toggleTheme(): void {
     this.themeService.toggleTheme();
   }
 
-  /**
-   * Obtiene el texto del botón de tema
-   */
   getThemeLabel(): string {
     return this.isDarkMode() ? 'Modo claro' : 'Modo oscuro';
   }
 
-  /**
-   * Abre el selector de archivos
-   */
   openFileSelector(): void {
     this.fileInput?.nativeElement.click();
   }
 
-  /**
-   * Maneja la selección de archivos
-   */
   onFileSelected(event: Event): void {
     const input = event.target as HTMLInputElement;
     const file = input.files?.[0];
 
     if (!file) return;
 
-    // Validar tipo de archivo
     if (file.type !== 'application/pdf') {
       alert('Por favor, selecciona un archivo PDF válido');
       return;
     }
 
-    // Validar tamaño (50MB máximo)
-    const maxSize = 50 * 1024 * 1024; // 50MB
+    const maxSize = 50 * 1024 * 1024;
     if (file.size > maxSize) {
       alert('El archivo es demasiado grande. Tamaño máximo: 50MB');
       return;
@@ -79,9 +58,6 @@ export class ToolbarComponent {
     this.uploadFile(file);
   }
 
-  /**
-   * Sube el archivo al servidor
-   */
   private uploadFile(file: File): void {
     this.isUploading.set(true);
     this.uploadProgress.set(0);
@@ -97,11 +73,10 @@ export class ToolbarComponent {
         this.isUploading.set(false);
         this.uploadProgress.set(100);
 
-        // Establecer el documento actual para mostrarlo en el visor
-        const pdfUrl = this.documentsService.getDocumentFileUrl(response.data._id);
-        this.currentDocumentService.setDocument(response.data, pdfUrl);
+        this.notebookService.loadActiveNotebook().subscribe({
+          error: (err) => console.error('Error recargando notebook:', err)
+        });
 
-        // Limpiar el input
         if (this.fileInput) {
           this.fileInput.nativeElement.value = '';
         }
@@ -114,7 +89,6 @@ export class ToolbarComponent {
         const errorMessage = error.error?.message || 'Error al subir el archivo';
         alert(`Error: ${errorMessage}`);
 
-        // Limpiar el input
         if (this.fileInput) {
           this.fileInput.nativeElement.value = '';
         }

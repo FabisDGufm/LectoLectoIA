@@ -18,6 +18,7 @@ const documentsRoutes = require('./routes/documents.routes');
 const notesRoutes = require('./routes/notes.routes');
 const processRoutes = require('./routes/process.routes');
 const exportRoutes = require('./routes/export.routes');
+const notebookRoutes = require('./routes/notebook.routes');
 
 // Crear aplicación Express
 const app = express();
@@ -114,6 +115,7 @@ app.use('/api/documents', documentsRoutes);
 app.use('/api/notes', notesRoutes);
 app.use('/api/process', processRoutes);
 app.use('/api/export', exportRoutes);
+app.use('/api/notebooks', notebookRoutes);
 
 // ============================================
 // MANEJO DE ERRORES

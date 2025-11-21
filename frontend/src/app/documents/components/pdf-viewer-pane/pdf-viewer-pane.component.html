@@ -16,7 +16,7 @@
     </div>
   }
 
-  @else if (!hasDocuments()) {
+  @else if (!hasPages()) {
     <div class="pdf-placeholder">
       <div class="placeholder-icon">📄</div>
       <h3>No hay documentos</h3>
@@ -42,12 +42,20 @@
           </button>
 
           <span class="docs-indicator">
-            📚 {{ activeDocuments().length }} documento{{ activeDocuments().length > 1 ? 's' : '' }}
-            · {{ totalPagesAll() }} página{{ totalPagesAll() > 1 ? 's' : '' }} total
+            📚 {{ totalPagesAll() }} página{{ totalPagesAll() > 1 ? 's' : '' }}
           </span>
         </div>
 
         <div class="controls-group">
+          <button
+            type="button"
+            class="btn btn-sm btn-book-mode"
+            [class.active]="bookMode()"
+            (click)="toggleBookMode()"
+            title="Modo libro: página + hoja de notas">
+            📖
+          </button>
+
           <button
             type="button"
             class="btn btn-sm btn-outline-secondary"
@@ -98,7 +106,7 @@
           <div class="thumbnails-container" #thumbnailsContainer></div>
         </aside>
 
-        <div class="pdf-pages-wrapper" #pagesContainer></div>
+        <div class="pdf-pages-wrapper" [class.book-mode]="bookMode()" #pagesContainer></div>
       </div>
     </div>
   }

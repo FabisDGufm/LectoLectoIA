@@ -1,16 +1,18 @@
 import { Component, OnInit, OnDestroy, signal, ElementRef, ViewChild, AfterViewInit, ChangeDetectorRef, inject, effect } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import * as pdfjsLib from 'pdfjs-dist';
-import { CurrentDocumentService, DocumentWithUrl } from '../../services/current-document.service';
+import { NotebookService, NotebookPage } from '../../services/notebook.service';
+import { DocumentsService } from '../../services/documents.service';
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 
 interface RenderedPage {
-  documentId: string;
-  documentTitle: string;
-  pageNumber: number;
-  totalPages: number;
-  globalIndex: number;
+  pageId: string;
+  documentId?: string;
+  documentTitle?: string;
+  pageNumber?: number;
+  type: 'pdf' | 'blank';
+  order: number;
   canvas: HTMLCanvasElement;
   thumbnail?: HTMLCanvasElement;
 }
@@ -24,7 +26,8 @@ interface RenderedPage {
 })
 export class PdfViewerPaneComponent implements OnInit, OnDestroy, AfterViewInit {
   private readonly cdr = inject(ChangeDetectorRef);
-  private readonly currentDocumentService = inject(CurrentDocumentService);
+  private readonly notebookService = inject(NotebookService);
+  private readonly documentsService = inject(DocumentsService);
 
   @ViewChild('pagesContainer', { static: false }) pagesContainerRef!: ElementRef<HTMLDivElement>;
   @ViewChild('thumbnailsContainer', { static: false }) thumbnailsContainerRef!: ElementRef<HTMLDivElement>;
@@ -39,19 +42,23 @@ export class PdfViewerPaneComponent implements OnInit, OnDestroy, AfterViewInit 
   private loadedPdfs: Map<string, pdfjsLib.PDFDocumentProxy> = new Map();
   private isDestroyed = false;
 
-  activeDocuments = this.currentDocumentService.activeDocuments;
-  hasDocuments = this.currentDocumentService.hasDocuments;
+  pages = this.notebookService.pages;
+  hasPages = this.notebookService.hasPages;
 
   constructor() {
     effect(() => {
-      const docs = this.activeDocuments();
-      if (docs.length > 0 && !this.isDestroyed) {
-        this.loadAllDocuments(docs);
+      const notebookPages = this.pages();
+      if (notebookPages.length > 0 && !this.isDestroyed) {
+        this.loadNotebookPages(notebookPages);
       }
     });
   }
 
-  ngOnInit(): void {}
+  ngOnInit(): void {
+    this.notebookService.loadActiveNotebook().subscribe({
+      error: (err) => console.error('Error cargando notebook:', err)
+    });
+  }
 
   ngAfterViewInit(): void {}
 
@@ -61,8 +68,8 @@ export class PdfViewerPaneComponent implements OnInit, OnDestroy, AfterViewInit 
     this.loadedPdfs.clear();
   }
 
-  async loadAllDocuments(documents: DocumentWithUrl[]): Promise<void> {
-    if (documents.length === 0) return;
+  async loadNotebookPages(notebookPages: NotebookPage[]): Promise<void> {
+    if (notebookPages.length === 0) return;
 
     this.isLoading.set(true);
     this.error.set(null);
@@ -70,36 +77,47 @@ export class PdfViewerPaneComponent implements OnInit, OnDestroy, AfterViewInit 
 
     try {
       const allPages: RenderedPage[] = [];
-      let totalPages = 0;
 
-      for (const docWithUrl of documents) {
-        let pdfDoc = this.loadedPdfs.get(docWithUrl.document._id);
+      for (const page of notebookPages) {
+        if (page.type === 'pdf' && page.documentId && page.pageNumber) {
+          const docId = page.documentId._id;
+          let pdfDoc = this.loadedPdfs.get(docId);
 
-        if (!pdfDoc) {
-          console.log('Cargando PDF:', docWithUrl.document.title);
-          const loadingTask = pdfjsLib.getDocument(docWithUrl.pdfUrl);
-          pdfDoc = await loadingTask.promise;
-          this.loadedPdfs.set(docWithUrl.document._id, pdfDoc);
-        }
+          if (!pdfDoc) {
+            const pdfUrl = this.documentsService.getDocumentFileUrl(docId);
+            const loadingTask = pdfjsLib.getDocument(pdfUrl);
+            pdfDoc = await loadingTask.promise;
+            this.loadedPdfs.set(docId, pdfDoc);
+          }
 
-        totalPages += pdfDoc.numPages;
+          const canvas = await this.renderPageToCanvas(pdfDoc, page.pageNumber);
+          const thumbnail = await this.renderThumbnail(pdfDoc, page.pageNumber);
 
-        for (let pageNum = 1; pageNum <= pdfDoc.numPages; pageNum++) {
-          const canvas = await this.renderPageToCanvas(pdfDoc, pageNum);
-          const thumbnail = await this.renderThumbnail(pdfDoc, pageNum);
           allPages.push({
-            documentId: docWithUrl.document._id,
-            documentTitle: docWithUrl.document.title,
-            pageNumber: pageNum,
-            totalPages: pdfDoc.numPages,
-            globalIndex: allPages.length,
+            pageId: page._id,
+            documentId: docId,
+            documentTitle: page.documentId.title,
+            pageNumber: page.pageNumber,
+            type: 'pdf',
+            order: page.order,
+            canvas,
+            thumbnail
+          });
+        } else if (page.type === 'blank') {
+          const canvas = this.createBlankCanvas();
+          const thumbnail = this.createBlankThumbnail();
+
+          allPages.push({
+            pageId: page._id,
+            type: 'blank',
+            order: page.order,
             canvas,
             thumbnail
           });
         }
       }
 
-      this.totalPagesAll.set(totalPages);
+      this.totalPagesAll.set(allPages.length);
       this.renderedPages.set(allPages);
       this.isLoading.set(false);
 
@@ -109,10 +127,46 @@ export class PdfViewerPaneComponent implements OnInit, OnDestroy, AfterViewInit 
       this.insertThumbnailsToDom();
 
     } catch (err: any) {
-      console.error('Error cargando documentos:', err);
-      this.error.set(err.message || 'Error al cargar los documentos');
+      console.error('Error cargando páginas:', err);
+      this.error.set(err.message || 'Error al cargar las páginas');
       this.isLoading.set(false);
     }
+  }
+
+  private createBlankCanvas(): HTMLCanvasElement {
+    const canvas = document.createElement('canvas');
+    const width = 595;
+    const height = 842;
+    const outputScale = window.devicePixelRatio || 1;
+
+    canvas.width = Math.floor(width * this.scale() * outputScale);
+    canvas.height = Math.floor(height * this.scale() * outputScale);
+    canvas.style.width = Math.floor(width * this.scale()) + 'px';
+    canvas.style.height = Math.floor(height * this.scale()) + 'px';
+
+    const ctx = canvas.getContext('2d')!;
+    ctx.scale(outputScale, outputScale);
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, width * this.scale(), height * this.scale());
+
+    return canvas;
+  }
+
+  private createBlankThumbnail(): HTMLCanvasElement {
+    const canvas = document.createElement('canvas');
+    const width = 119;
+    const height = 168;
+
+    canvas.width = width;
+    canvas.height = height;
+    canvas.style.width = width + 'px';
+    canvas.style.height = height + 'px';
+
+    const ctx = canvas.getContext('2d')!;
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, width, height);
+
+    return canvas;
   }
 
   private async renderPageToCanvas(pdfDoc: pdfjsLib.PDFDocumentProxy, pageNum: number): Promise<HTMLCanvasElement> {
@@ -175,21 +229,115 @@ export class PdfViewerPaneComponent implements OnInit, OnDestroy, AfterViewInit 
 
     const pages = this.renderedPages();
 
-    pages.forEach((page) => {
+    pages.forEach((page, index) => {
       const pageWrapper = document.createElement('div');
       pageWrapper.className = 'page-wrapper';
-      pageWrapper.setAttribute('data-page', `${page.pageNumber}`);
+      pageWrapper.setAttribute('data-page-id', page.pageId);
+      pageWrapper.setAttribute('data-index', `${index}`);
 
       page.canvas.className = 'pdf-page-canvas';
       pageWrapper.appendChild(page.canvas);
 
       const pageLabel = document.createElement('div');
       pageLabel.className = 'page-label';
-      pageLabel.textContent = `Página ${page.pageNumber} de ${page.totalPages}`;
+      if (page.type === 'pdf') {
+        pageLabel.textContent = `${page.documentTitle} - Pág. ${page.pageNumber}`;
+      } else {
+        pageLabel.textContent = `Página en blanco`;
+      }
       pageWrapper.appendChild(pageLabel);
 
       container.appendChild(pageWrapper);
     });
+  }
+
+  private insertThumbnailsToDom(): void {
+    if (!this.thumbnailsContainerRef?.nativeElement) return;
+
+    const container = this.thumbnailsContainerRef.nativeElement;
+    container.innerHTML = '';
+
+    const pages = this.renderedPages();
+
+    pages.forEach((page, index) => {
+      const thumbWrapper = document.createElement('div');
+      thumbWrapper.className = 'thumbnail-wrapper';
+      thumbWrapper.setAttribute('data-page-id', page.pageId);
+      thumbWrapper.setAttribute('data-index', `${index}`);
+
+      if (page.thumbnail) {
+        page.thumbnail.className = 'thumbnail-canvas';
+        thumbWrapper.appendChild(page.thumbnail);
+      }
+
+      const controls = document.createElement('div');
+      controls.className = 'thumbnail-controls';
+
+      const moveUpBtn = document.createElement('button');
+      moveUpBtn.className = 'thumb-btn';
+      moveUpBtn.innerHTML = '▲';
+      moveUpBtn.title = 'Mover arriba';
+      moveUpBtn.disabled = index === 0;
+      moveUpBtn.onclick = (e) => {
+        e.stopPropagation();
+        this.movePageUp(page.pageId);
+      };
+
+      const moveDownBtn = document.createElement('button');
+      moveDownBtn.className = 'thumb-btn';
+      moveDownBtn.innerHTML = '▼';
+      moveDownBtn.title = 'Mover abajo';
+      moveDownBtn.disabled = index === pages.length - 1;
+      moveDownBtn.onclick = (e) => {
+        e.stopPropagation();
+        this.movePageDown(page.pageId);
+      };
+
+      const deleteBtn = document.createElement('button');
+      deleteBtn.className = 'thumb-btn thumb-btn-delete';
+      deleteBtn.innerHTML = '✕';
+      deleteBtn.title = 'Eliminar página';
+      deleteBtn.onclick = (e) => {
+        e.stopPropagation();
+        this.deletePage(page.pageId);
+      };
+
+      controls.appendChild(moveUpBtn);
+      controls.appendChild(moveDownBtn);
+      controls.appendChild(deleteBtn);
+      thumbWrapper.appendChild(controls);
+
+      const pageNum = document.createElement('div');
+      pageNum.className = 'thumbnail-page-num';
+      pageNum.textContent = `${index + 1}`;
+      thumbWrapper.appendChild(pageNum);
+
+      thumbWrapper.addEventListener('click', () => {
+        this.scrollToPage(index);
+      });
+
+      container.appendChild(thumbWrapper);
+    });
+  }
+
+  movePageUp(pageId: string): void {
+    this.notebookService.movePage(pageId, 'up').subscribe({
+      error: (err) => console.error('Error moviendo página:', err)
+    });
+  }
+
+  movePageDown(pageId: string): void {
+    this.notebookService.movePage(pageId, 'down').subscribe({
+      error: (err) => console.error('Error moviendo página:', err)
+    });
+  }
+
+  deletePage(pageId: string): void {
+    if (confirm('¿Eliminar esta página del cuaderno?')) {
+      this.notebookService.deletePage(pageId).subscribe({
+        error: (err) => console.error('Error eliminando página:', err)
+      });
+    }
   }
 
   async zoomIn(): Promise<void> {
@@ -212,9 +360,9 @@ export class PdfViewerPaneComponent implements OnInit, OnDestroy, AfterViewInit 
   }
 
   private async reRenderAll(): Promise<void> {
-    const docs = this.activeDocuments();
-    if (docs.length > 0) {
-      await this.loadAllDocuments(docs);
+    const notebookPages = this.pages();
+    if (notebookPages.length > 0) {
+      await this.loadNotebookPages(notebookPages);
     }
   }
 
@@ -223,55 +371,24 @@ export class PdfViewerPaneComponent implements OnInit, OnDestroy, AfterViewInit 
   }
 
   retry(): void {
-    const docs = this.activeDocuments();
-    if (docs.length > 0) {
-      this.loadAllDocuments(docs);
-    }
+    this.notebookService.loadActiveNotebook().subscribe({
+      next: () => {},
+      error: (err) => console.error('Error recargando notebook:', err)
+    });
   }
 
   toggleThumbnails(): void {
     this.showThumbnails.update(v => !v);
   }
 
-  private insertThumbnailsToDom(): void {
-    if (!this.thumbnailsContainerRef?.nativeElement) return;
-
-    const container = this.thumbnailsContainerRef.nativeElement;
-    container.innerHTML = '';
-
-    const pages = this.renderedPages();
-
-    pages.forEach((page) => {
-      const thumbWrapper = document.createElement('div');
-      thumbWrapper.className = 'thumbnail-wrapper';
-      thumbWrapper.setAttribute('data-global-index', `${page.globalIndex}`);
-
-      if (page.thumbnail) {
-        page.thumbnail.className = 'thumbnail-canvas';
-        thumbWrapper.appendChild(page.thumbnail);
-      }
-
-      const pageNum = document.createElement('div');
-      pageNum.className = 'thumbnail-page-num';
-      pageNum.textContent = `${page.pageNumber}`;
-      thumbWrapper.appendChild(pageNum);
-
-      thumbWrapper.addEventListener('click', () => {
-        this.scrollToPage(page.globalIndex);
-      });
-
-      container.appendChild(thumbWrapper);
-    });
-  }
-
-  scrollToPage(globalIndex: number): void {
+  scrollToPage(index: number): void {
     if (!this.pagesContainerRef?.nativeElement) return;
 
     const container = this.pagesContainerRef.nativeElement;
     const pageWrappers = container.querySelectorAll('.page-wrapper');
 
-    if (pageWrappers[globalIndex]) {
-      pageWrappers[globalIndex].scrollIntoView({
+    if (pageWrappers[index]) {
+      pageWrappers[index].scrollIntoView({
         behavior: 'smooth',
         block: 'start'
       });
