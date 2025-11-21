@@ -309,7 +309,8 @@
   font-weight: 500;
 }
 
-.btn-thumbnails {
+.btn-thumbnails,
+.btn-book-mode {
   font-size: 1.1rem !important;
   padding: 0.4rem 0.75rem !important;
 
@@ -349,6 +350,47 @@
     &:hover {
       background: var(--rose-elegant);
     }
+  }
+
+  &.book-mode {
+    gap: 2.5rem;
+  }
+}
+
+.book-spread {
+  display: flex !important;
+  flex-direction: row !important;
+  flex-wrap: nowrap !important;
+  align-items: flex-start;
+  gap: 0;
+  box-shadow: var(--shadow-lg);
+  background: #8b7355;
+  padding: 8px;
+  border-radius: 4px;
+
+  > .page-wrapper {
+    flex: 0 0 auto;
+    margin: 0;
+
+    &.left-page {
+      border-right: 3px solid #6b5344;
+      padding-right: 4px;
+    }
+
+    &.right-page {
+      padding-left: 4px;
+    }
+
+    .page-label {
+      font-size: 0.75rem;
+      background: rgba(255, 255, 255, 0.9);
+    }
+  }
+}
+
+.note-page {
+  .note-canvas {
+    box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.05);
   }
 }
 

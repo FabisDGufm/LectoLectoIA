@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy, signal, ElementRef, ViewChild, AfterViewInit, ChangeDetectorRef, inject, effect } from '@angular/core';
+import { Component, OnInit, OnDestroy, signal, ElementRef, ViewChild, AfterViewInit, ChangeDetectorRef, inject, effect, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import * as pdfjsLib from 'pdfjs-dist';
 import { NotebookService, NotebookPage } from '../../services/notebook.service';
@@ -38,6 +38,7 @@ export class PdfViewerPaneComponent implements OnInit, OnDestroy, AfterViewInit 
   renderedPages = signal<RenderedPage[]>([]);
   totalPagesAll = signal(0);
   showThumbnails = signal(false);
+  bookMode = signal(false);
 
   private loadedPdfs: Map<string, pdfjsLib.PDFDocumentProxy> = new Map();
   private isDestroyed = false;
@@ -228,27 +229,99 @@ export class PdfViewerPaneComponent implements OnInit, OnDestroy, AfterViewInit 
     container.innerHTML = '';
 
     const pages = this.renderedPages();
+    const isBookMode = this.bookMode();
 
-    pages.forEach((page, index) => {
-      const pageWrapper = document.createElement('div');
-      pageWrapper.className = 'page-wrapper';
-      pageWrapper.setAttribute('data-page-id', page.pageId);
-      pageWrapper.setAttribute('data-index', `${index}`);
+    if (isBookMode) {
+      pages.forEach((page, index) => {
+        const spread = document.createElement('div');
+        spread.className = 'book-spread';
+        spread.style.display = 'flex';
+        spread.style.flexDirection = 'row';
+        spread.style.flexWrap = 'nowrap';
+        spread.style.alignItems = 'flex-start';
+        spread.style.justifyContent = 'center';
+        spread.style.gap = '4px';
 
-      page.canvas.className = 'pdf-page-canvas';
-      pageWrapper.appendChild(page.canvas);
+        const leftPage = this.createPageElement(page, index);
+        leftPage.classList.add('left-page');
+        leftPage.style.flex = '0 0 auto';
+        spread.appendChild(leftPage);
 
-      const pageLabel = document.createElement('div');
-      pageLabel.className = 'page-label';
-      if (page.type === 'pdf') {
-        pageLabel.textContent = `${page.documentTitle} - Pág. ${page.pageNumber}`;
-      } else {
-        pageLabel.textContent = `Página en blanco`;
-      }
-      pageWrapper.appendChild(pageLabel);
+        const rightPage = this.createBlankNotePageElement(index);
+        rightPage.classList.add('right-page');
+        rightPage.style.flex = '0 0 auto';
+        spread.appendChild(rightPage);
 
-      container.appendChild(pageWrapper);
-    });
+        container.appendChild(spread);
+      });
+    } else {
+      pages.forEach((page, index) => {
+        const pageWrapper = this.createPageElement(page, index);
+        container.appendChild(pageWrapper);
+      });
+    }
+  }
+
+  private createPageElement(page: RenderedPage, index: number): HTMLDivElement {
+    const pageWrapper = document.createElement('div');
+    pageWrapper.className = 'page-wrapper';
+    pageWrapper.setAttribute('data-page-id', page.pageId);
+    pageWrapper.setAttribute('data-index', `${index}`);
+
+    page.canvas.className = 'pdf-page-canvas';
+    pageWrapper.appendChild(page.canvas);
+
+    const pageLabel = document.createElement('div');
+    pageLabel.className = 'page-label';
+    if (page.type === 'pdf') {
+      pageLabel.textContent = `${page.documentTitle} - Pág. ${page.pageNumber}`;
+    } else {
+      pageLabel.textContent = `Página en blanco`;
+    }
+    pageWrapper.appendChild(pageLabel);
+
+    return pageWrapper;
+  }
+
+  private createBlankNotePageElement(index: number): HTMLDivElement {
+    const pageWrapper = document.createElement('div');
+    pageWrapper.className = 'page-wrapper note-page';
+    pageWrapper.setAttribute('data-index', `${index}`);
+
+    const canvas = document.createElement('canvas');
+    const width = 595;
+    const height = 842;
+    const outputScale = window.devicePixelRatio || 1;
+
+    canvas.width = Math.floor(width * this.scale() * outputScale);
+    canvas.height = Math.floor(height * this.scale() * outputScale);
+    canvas.style.width = Math.floor(width * this.scale()) + 'px';
+    canvas.style.height = Math.floor(height * this.scale()) + 'px';
+
+    const ctx = canvas.getContext('2d')!;
+    ctx.scale(outputScale, outputScale);
+    ctx.fillStyle = '#fffef5';
+    ctx.fillRect(0, 0, width * this.scale(), height * this.scale());
+
+    ctx.strokeStyle = '#e8e4d9';
+    ctx.lineWidth = 1;
+    const lineHeight = 25 * this.scale();
+    for (let y = lineHeight * 2; y < height * this.scale(); y += lineHeight) {
+      ctx.beginPath();
+      ctx.moveTo(20 * this.scale(), y);
+      ctx.lineTo((width - 20) * this.scale(), y);
+      ctx.stroke();
+    }
+
+    canvas.className = 'pdf-page-canvas note-canvas';
+    pageWrapper.appendChild(canvas);
+
+    const pageLabel = document.createElement('div');
+    pageLabel.className = 'page-label';
+    pageLabel.textContent = `Notas`;
+    pageWrapper.appendChild(pageLabel);
+
+    return pageWrapper;
   }
 
   private insertThumbnailsToDom(): void {
@@ -379,6 +452,12 @@ export class PdfViewerPaneComponent implements OnInit, OnDestroy, AfterViewInit 
 
   toggleThumbnails(): void {
     this.showThumbnails.update(v => !v);
+  }
+
+  toggleBookMode(): void {
+    this.bookMode.update(v => !v);
+    this.insertCanvasesToDom();
+    this.insertThumbnailsToDom();
   }
 
   scrollToPage(index: number): void {
