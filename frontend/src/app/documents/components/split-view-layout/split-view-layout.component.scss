@@ -10,6 +10,14 @@
   background-color: var(--color-bg-secondary);
 }
 
+// === Iconos SVG ===
+.icon-sm {
+  width: 1rem;
+  height: 1rem;
+  flex-shrink: 0;
+  vertical-align: middle;
+}
+
 // === Controles móviles ===
 .mobile-toggle {
   display: flex;
@@ -17,6 +25,16 @@
   padding: 0.75rem 1rem;
   background-color: var(--color-bg-primary);
   border-bottom: 1px solid var(--color-border, #e0e0e0);
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+
+    svg {
+      stroke: currentColor;
+    }
+  }
 }
 
 // === Contenedor principal ===

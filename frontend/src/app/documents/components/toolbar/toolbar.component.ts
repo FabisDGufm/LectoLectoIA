@@ -4,6 +4,7 @@ import { ThemeService } from '../../../core/services/theme.service';
 import { GreetingService } from '../../../core/services/greeting.service';
 import { DocumentsService } from '../../services/documents.service';
 import { NotebookService } from '../../services/notebook.service';
+import { AuthService } from '../../../auth/auth.service';
 
 @Component({
   selector: 'app-toolbar',
@@ -17,6 +18,7 @@ export class ToolbarComponent {
   private readonly greetingService = inject(GreetingService);
   private readonly documentsService = inject(DocumentsService);
   private readonly notebookService = inject(NotebookService);
+  readonly authService = inject(AuthService);
 
   @ViewChild('fileInput') fileInput?: ElementRef<HTMLInputElement>;
 
@@ -24,7 +26,8 @@ export class ToolbarComponent {
   uploadProgress = signal(0);
 
   isDarkMode = computed(() => this.themeService.theme() === 'dark');
-  greeting = computed(() => this.greetingService.greeting());
+  // Usar saludo del AuthService que incluye el nombre del usuario
+  greeting = computed(() => this.authService.getGreeting());
 
   toggleTheme(): void {
     this.themeService.toggleTheme();

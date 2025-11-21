@@ -22,8 +22,42 @@
     <!-- Header del panel -->
     <header class="notes-header">
       <h2 class="notes-title">Notas</h2>
-      <span class="notes-count badge bg-primary">{{ filteredNotes().length }}</span>
+      <div class="notes-header-right">
+        @if (notesService.isSyncing()) {
+          <span class="sync-indicator syncing" title="Sincronizando...">
+            <span class="spinner-border spinner-border-sm"></span>
+          </span>
+        }
+        <span class="notes-count badge bg-primary">{{ filteredNotes().length }}</span>
+        <button
+          type="button"
+          class="btn-refresh"
+          (click)="refreshNotes()"
+          [disabled]="isLoading()"
+          title="Recargar notas">
+          <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M23 4v6h-6"></path>
+            <path d="M1 20v-6h6"></path>
+            <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+          </svg>
+        </button>
+      </div>
     </header>
+
+    <!-- Error de carga -->
+    @if (loadError()) {
+      <div class="notes-error">
+        <span>{{ loadError() }}</span>
+        <button type="button" class="btn btn-sm btn-outline-primary" (click)="refreshNotes()">Reintentar</button>
+      </div>
+    }
+
+    <!-- Error de sincronización -->
+    @if (notesService.syncError()) {
+      <div class="notes-sync-error">
+        <span>{{ notesService.syncError() }}</span>
+      </div>
+    }
 
     <!-- Búsqueda de notas -->
     <div class="notes-search">
@@ -49,8 +83,13 @@
         type="button"
         class="btn btn-primary btn-sm mt-2 w-100"
         (click)="createNote()"
-        [disabled]="!newNoteText().trim()">
-        Agregar Nota
+        [disabled]="!newNoteText().trim() || isSaving()">
+        @if (isSaving()) {
+          <span class="spinner-border spinner-border-sm me-1"></span>
+          Guardando...
+        } @else {
+          Agregar Nota
+        }
       </button>
     </div>
 
@@ -130,13 +169,19 @@
                     type="button"
                     class="btn btn-sm btn-success"
                     (click)="saveNote(note._id)"
-                    [disabled]="!editNoteText().trim()">
-                    Guardar
+                    [disabled]="!editNoteText().trim() || isSaving()">
+                    @if (isSaving()) {
+                      <span class="spinner-border spinner-border-sm me-1"></span>
+                      Guardando...
+                    } @else {
+                      Guardar
+                    }
                   </button>
                   <button
                     type="button"
                     class="btn btn-sm btn-secondary"
-                    (click)="cancelEditing()">
+                    (click)="cancelEditing()"
+                    [disabled]="isSaving()">
                     Cancelar
                   </button>
                 </div>

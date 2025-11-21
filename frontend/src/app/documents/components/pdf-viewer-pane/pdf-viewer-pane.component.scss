@@ -6,6 +6,20 @@
   transition: all var(--transition-base);
 }
 
+// === Iconos SVG ===
+.icon-sm {
+  width: 1rem;
+  height: 1rem;
+  flex-shrink: 0;
+  vertical-align: middle;
+}
+
+.icon-tool {
+  width: 1.1rem;
+  height: 1.1rem;
+  flex-shrink: 0;
+}
+
 .pdf-loading,
 .pdf-error {
   display: flex;
@@ -25,8 +39,13 @@
   }
 
   .error-icon {
-    font-size: 4rem;
     margin-bottom: 1rem;
+
+    svg {
+      width: 4rem;
+      height: 4rem;
+      stroke: var(--rose-elegant, #c77d94);
+    }
   }
 
   h4 {
@@ -61,9 +80,16 @@
 }
 
 .docs-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
   font-size: 0.9rem;
   color: var(--color-text-secondary);
   font-weight: 500;
+
+  svg {
+    stroke: currentColor;
+  }
 }
 
 .pdf-controls {
@@ -555,10 +581,14 @@
   }
 
   .placeholder-icon {
-    font-size: 5rem;
     margin-bottom: 1.5rem;
-    color: var(--gray-light);
     opacity: 0.6;
+
+    svg {
+      width: 5rem;
+      height: 5rem;
+      stroke: var(--gray-light);
+    }
   }
 
   h3 {

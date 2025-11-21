@@ -3,9 +3,10 @@
  * Panel lateral para visualizar y gestionar notas
  */
 
-import { Component, Input, OnInit, inject, signal, computed, ViewChild, ElementRef, AfterViewChecked } from '@angular/core';
+import { Component, Input, OnInit, OnDestroy, inject, signal, computed, ViewChild, ElementRef, AfterViewChecked } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { Subscription } from 'rxjs';
 import { NotesService } from '../../services/notes.service';
 import { ChatService } from '../../services/chat.service';
 import { CurrentDocumentService } from '../../services/current-document.service';
@@ -19,23 +20,28 @@ import { Note, CreateNoteDto, UpdateNoteDto } from '../../models/note.model';
   templateUrl: './notes-pane.component.html',
   styleUrls: ['./notes-pane.component.scss']
 })
-export class NotesPaneComponent implements OnInit, AfterViewChecked {
+export class NotesPaneComponent implements OnInit, AfterViewChecked, OnDestroy {
   @Input() documentId?: string;
   @ViewChild('chatMessages') chatMessagesRef!: ElementRef<HTMLDivElement>;
 
-  private readonly notesService = inject(NotesService);
+  readonly notesService = inject(NotesService);
   readonly chatService = inject(ChatService);
   readonly currentDocumentService = inject(CurrentDocumentService);
   private readonly documentsService = inject(DocumentsService);
 
+  // Suscripciones
+  private subscriptions: Subscription[] = [];
+
   // Estado del componente
   notes = signal<Note[]>([]);
   isLoading = signal(false);
+  loadError = signal<string | null>(null);
   searchTerm = signal('');
   selectedNote = signal<Note | null>(null);
   editingNote = signal<string | null>(null); // ID de la nota en edición
   newNoteText = signal('');
   editNoteText = signal('');
+  isSaving = signal(false);
 
   // Estado del chat
   activeTab = signal<'notes' | 'chat'>('notes');
@@ -62,13 +68,19 @@ export class NotesPaneComponent implements OnInit, AfterViewChecked {
   });
 
   ngOnInit(): void {
-    // Cargar notas (todas si no hay documentId específico)
-    this.loadNotes();
-
-    // Suscribirse a cambios en notas
-    this.notesService.notes$.subscribe(notes => {
+    // Suscribirse a cambios en notas (antes de cargar)
+    const notesSub = this.notesService.notes$.subscribe(notes => {
       this.notes.set(notes);
     });
+    this.subscriptions.push(notesSub);
+
+    // Cargar notas (todas si no hay documentId específico)
+    this.loadNotes();
+  }
+
+  ngOnDestroy(): void {
+    // Limpiar todas las suscripciones
+    this.subscriptions.forEach(sub => sub.unsubscribe());
   }
 
   /**
@@ -76,6 +88,7 @@ export class NotesPaneComponent implements OnInit, AfterViewChecked {
    */
   loadNotes(): void {
     this.isLoading.set(true);
+    this.loadError.set(null);
 
     // Si hay documentId específico, cargar solo esas notas; sino cargar todas
     const params = this.documentId ? { documentId: this.documentId } : { limit: 100 };
@@ -83,15 +96,28 @@ export class NotesPaneComponent implements OnInit, AfterViewChecked {
     this.notesService.getAllNotes(params)
       .subscribe({
         next: (response) => {
-          this.notes.set(response.data);
-          console.log('[NotesPaneChat] Notas cargadas:', response.data.length);
+          if (response.success) {
+            this.notes.set(response.data);
+            console.log('[NotesPaneComponent] Notas cargadas:', response.data.length);
+          } else {
+            this.loadError.set('Error al cargar notas');
+          }
           this.isLoading.set(false);
         },
         error: (error) => {
-          console.error('Error cargando notas:', error);
+          console.error('[NotesPaneComponent] Error cargando notas:', error);
+          this.loadError.set('Error de conexión. Intenta recargar.');
           this.isLoading.set(false);
         }
       });
+  }
+
+  /**
+   * Recarga las notas forzadamente
+   */
+  refreshNotes(): void {
+    console.log('[NotesPaneComponent] Recargando notas...');
+    this.loadNotes();
   }
 
   /**
@@ -100,6 +126,8 @@ export class NotesPaneComponent implements OnInit, AfterViewChecked {
   createNote(): void {
     const text = this.newNoteText().trim();
     if (!text || !this.documentId) return;
+
+    this.isSaving.set(true);
 
     const dto: CreateNoteDto = {
       documentId: this.documentId,
@@ -112,11 +140,14 @@ export class NotesPaneComponent implements OnInit, AfterViewChecked {
 
     this.notesService.createNote(dto).subscribe({
       next: (response) => {
-        console.log('Nota creada:', response.data);
+        console.log('[NotesPaneComponent] Nota creada:', response.data._id);
         this.newNoteText.set('');
+        this.isSaving.set(false);
       },
       error: (error) => {
-        console.error('Error creando nota:', error);
+        console.error('[NotesPaneComponent] Error creando nota:', error);
+        this.isSaving.set(false);
+        // No limpiar el texto para que el usuario pueda reintentar
       }
     });
   }
@@ -144,15 +175,19 @@ export class NotesPaneComponent implements OnInit, AfterViewChecked {
     const text = this.editNoteText().trim();
     if (!text) return;
 
+    this.isSaving.set(true);
     const dto: UpdateNoteDto = { text };
 
     this.notesService.updateNote(noteId, dto).subscribe({
       next: (response) => {
-        console.log('Nota actualizada:', response.data);
+        console.log('[NotesPaneComponent] Nota actualizada:', response.data._id);
         this.cancelEditing();
+        this.isSaving.set(false);
       },
       error: (error) => {
-        console.error('Error actualizando nota:', error);
+        console.error('[NotesPaneComponent] Error actualizando nota:', error);
+        this.isSaving.set(false);
+        // No cancelar edición para que el usuario pueda reintentar
       }
     });
   }

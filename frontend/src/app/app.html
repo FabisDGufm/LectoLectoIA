@@ -3,11 +3,16 @@
   Aplicación Angular principal
 -->
 
-<!-- Toolbar superior con modo oscuro y saludo dinámico -->
-<app-toolbar></app-toolbar>
+@if (authService.isLoggedIn()) {
+  <!-- Toolbar superior con modo oscuro y saludo dinámico -->
+  <app-toolbar></app-toolbar>
 
-<!-- Vista dividida: PDF + Notas -->
-<app-split-view-layout></app-split-view-layout>
+  <!-- Vista dividida: PDF + Notas -->
+  <app-split-view-layout></app-split-view-layout>
 
-<!-- Router outlet para futuras rutas -->
-<router-outlet />
+  <!-- Router outlet para futuras rutas -->
+  <router-outlet />
+} @else {
+  <!-- Pantalla de Login -->
+  <app-login (loginSuccess)="onLoginSuccess()"></app-login>
+}

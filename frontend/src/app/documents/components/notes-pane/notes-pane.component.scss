@@ -32,11 +32,74 @@
   letter-spacing: var(--letter-spacing-tight);
 }
 
+.notes-header-right {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
 .notes-count {
   font-size: 0.85rem;
   color: var(--color-text-secondary);
   font-weight: 500;
   letter-spacing: var(--letter-spacing-normal);
+}
+
+.btn-refresh {
+  background: none;
+  border: 1px solid var(--color-border);
+  color: var(--color-text-secondary);
+  padding: 0.35rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  &:hover:not(:disabled) {
+    background: var(--rose-elegant);
+    color: white;
+    border-color: var(--rose-elegant);
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  .icon-sm {
+    width: 1rem;
+    height: 1rem;
+  }
+}
+
+.sync-indicator {
+  display: flex;
+  align-items: center;
+
+  &.syncing {
+    color: var(--rose-elegant);
+  }
+}
+
+// === Errores ===
+.notes-error,
+.notes-sync-error {
+  padding: 0.75rem 1rem;
+  background: #fff3cd;
+  border-bottom: 1px solid #ffc107;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  font-size: 0.85rem;
+  color: #856404;
+}
+
+.notes-sync-error {
+  background: #f8d7da;
+  border-bottom-color: #f5c6cb;
+  color: #721c24;
 }
 
 // === Búsqueda ===
