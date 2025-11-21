@@ -1,0 +1,167 @@
+/**
+ * Estilos del Split View Layout
+ * Layout responsive tipo libro-abierto + cuaderno
+ */
+
+.split-view-layout {
+  height: calc(100vh - 80px); // Ajustar según altura del toolbar
+  display: flex;
+  flex-direction: column;
+  background-color: var(--color-bg-secondary);
+}
+
+// === Controles móviles ===
+.mobile-toggle {
+  display: flex;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  background-color: var(--color-bg-primary);
+  border-bottom: 1px solid var(--color-border, #e0e0e0);
+}
+
+// === Contenedor principal ===
+.split-container {
+  flex: 1;
+  display: flex;
+  overflow: hidden;
+}
+
+// === Paneles ===
+.split-panel {
+  height: 100%;
+  overflow: hidden;
+  transition: width 0.3s ease;
+}
+
+.split-panel-left {
+  flex: 1 1 70%; // 70% del ancho por defecto
+  min-width: 0; // Permite que flex-shrink funcione correctamente
+}
+
+.split-panel-right {
+  flex: 0 0 30%; // 30% del ancho por defecto
+  min-width: 300px; // Ancho mínimo para el panel de notas
+}
+
+// === Divisor ===
+.split-divider {
+  width: 4px;
+  background-color: var(--color-border, #e0e0e0);
+  cursor: col-resize;
+  transition: background-color 0.2s ease;
+  position: relative;
+
+  &:hover {
+    background-color: var(--color-accent);
+  }
+
+  // Preparado para fase 2: hacer divisor arrastrable
+  &::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 20px;
+    height: 60px;
+    background-color: transparent;
+  }
+}
+
+// === Responsive ===
+
+// Tablets
+@media (max-width: 992px) {
+  .split-panel-left {
+    flex: 1 1 60%;
+  }
+
+  .split-panel-right {
+    flex: 0 0 40%;
+    min-width: 250px;
+  }
+}
+
+// Móviles
+@media (max-width: 768px) {
+  .split-container {
+    flex-direction: column;
+  }
+
+  .split-panel {
+    flex: 1 1 auto !important;
+    min-width: 100% !important;
+    width: 100% !important;
+  }
+
+  .split-panel.hidden-mobile {
+    display: none;
+  }
+
+  .split-divider {
+    display: none;
+  }
+}
+
+// === Modo oscuro ===
+[data-theme="dark"] {
+  .split-divider {
+    background-color: rgba(255, 255, 255, 0.1);
+
+    &:hover {
+      background-color: var(--color-accent);
+    }
+  }
+}
+
+// === Variantes de layout (preparado para fase 2) ===
+
+// Layout vertical (preparado)
+.split-view-layout.layout-vertical {
+  .split-container {
+    flex-direction: column;
+  }
+
+  .split-panel-left,
+  .split-panel-right {
+    flex: 1 1 50%;
+    min-width: 100%;
+  }
+
+  .split-divider {
+    width: 100%;
+    height: 4px;
+    cursor: row-resize;
+  }
+}
+
+// Layout solo PDF (preparado)
+.split-view-layout.layout-pdf-only {
+  .split-panel-right {
+    display: none;
+  }
+
+  .split-panel-left {
+    flex: 1 1 100%;
+  }
+
+  .split-divider {
+    display: none;
+  }
+}
+
+// Layout solo notas (preparado)
+.split-view-layout.layout-notes-only {
+  .split-panel-left {
+    display: none;
+  }
+
+  .split-panel-right {
+    flex: 1 1 100%;
+    min-width: 100%;
+  }
+
+  .split-divider {
+    display: none;
+  }
+}

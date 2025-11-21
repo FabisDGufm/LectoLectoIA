@@ -1,0 +1,320 @@
+/**
+ * Estilos del Notes Pane - Diseño Elegante Minimalista
+ * Inspirado en diseño premium con acentos de rosa elegante
+ */
+
+.notes-pane {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  background-color: var(--color-bg-secondary);
+  border-left: 1px solid var(--color-border);
+  transition: all var(--transition-base);
+}
+
+// === Header ===
+.notes-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1.5rem;
+  border-bottom: 1px solid var(--color-border);
+  background-color: var(--color-bg-primary);
+  backdrop-filter: blur(10px);
+}
+
+.notes-title {
+  font-family: var(--font-family-heading);
+  font-size: 1.4rem;
+  font-weight: 700;
+  margin: 0;
+  color: var(--color-text-primary);
+  letter-spacing: var(--letter-spacing-tight);
+}
+
+.notes-count {
+  font-size: 0.85rem;
+  color: var(--color-text-secondary);
+  font-weight: 500;
+  letter-spacing: var(--letter-spacing-normal);
+}
+
+// === Búsqueda ===
+.notes-search {
+  padding: 1.5rem;
+  border-bottom: 1px solid var(--color-border);
+  background-color: var(--color-bg-primary);
+}
+
+// === Nueva nota ===
+.notes-new {
+  padding: 1.5rem;
+  border-bottom: 2px solid var(--color-accent);
+  background: linear-gradient(135deg, rgba(139, 69, 96, 0.05), rgba(107, 45, 92, 0.05));
+  transition: all var(--transition-base);
+}
+
+// === Lista de notas ===
+.notes-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 1rem;
+}
+
+// === Nota individual ===
+.note-item {
+  background-color: var(--color-bg-primary);
+  border: 1px solid var(--color-border);
+  border-radius: 0; // Minimalista
+  padding: 1.25rem;
+  margin-bottom: 1rem;
+  transition: all var(--transition-base);
+  box-shadow: var(--shadow-sm);
+
+  &:hover {
+    box-shadow: var(--shadow-md);
+    transform: translateY(-2px);
+    border-color: var(--rose-elegant);
+  }
+
+  &.editing {
+    border-color: var(--color-accent);
+    box-shadow: 0 0 0 2px rgba(139, 69, 96, 0.2);
+    background: linear-gradient(135deg, rgba(139, 69, 96, 0.02), rgba(107, 45, 92, 0.02));
+  }
+}
+
+.note-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
+
+.note-page {
+  font-size: 0.75rem;
+  color: var(--color-text-secondary);
+  font-weight: 600;
+  background-color: var(--color-bg-secondary);
+  padding: 0.35rem 0.75rem;
+  border-radius: 0; // Minimalista
+  border: 1px solid var(--color-border);
+  letter-spacing: var(--letter-spacing-wide);
+  text-transform: uppercase;
+}
+
+.btn-favorite {
+  background: none;
+  border: none;
+  font-size: 1.3rem;
+  cursor: pointer;
+  padding: 0.25rem;
+  line-height: 1;
+  transition: all var(--transition-fast);
+  opacity: 0.4;
+  color: var(--rose-dark);
+
+  &:hover {
+    transform: scale(1.2);
+    opacity: 1;
+  }
+
+  &.active {
+    opacity: 1;
+    color: var(--rose-dark);
+    filter: drop-shadow(0 2px 4px rgba(139, 69, 96, 0.3));
+  }
+}
+
+.note-text {
+  font-size: 0.95rem;
+  line-height: 1.7;
+  color: var(--color-text-primary);
+  margin-bottom: 0.75rem;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  letter-spacing: var(--letter-spacing-normal);
+}
+
+.note-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-top: 1px solid var(--color-border);
+  padding-top: 0.75rem;
+  margin-top: 0.5rem;
+}
+
+.note-date {
+  font-size: 0.75rem;
+  color: var(--color-text-secondary);
+  font-weight: 500;
+  letter-spacing: var(--letter-spacing-normal);
+}
+
+.note-actions {
+  display: flex;
+  gap: 0.5rem;
+
+  .btn {
+    padding: 0.35rem 0.75rem;
+    font-size: 0.85rem;
+    border-radius: 0; // Minimalista
+    border: 1px solid var(--color-border);
+    background-color: transparent;
+    color: var(--color-text-secondary);
+    font-weight: 600;
+    letter-spacing: var(--letter-spacing-normal);
+    transition: all var(--transition-fast);
+
+    &:hover {
+      background: linear-gradient(135deg, var(--rose-dark), var(--pink-dark));
+      color: var(--white);
+      border-color: var(--rose-dark);
+      transform: translateY(-1px);
+    }
+  }
+}
+
+// === Estados vacíos y carga ===
+.notes-empty {
+  padding: 3rem 2rem;
+  text-align: center;
+
+  p {
+    font-family: var(--font-family-heading);
+    font-size: 1.2rem;
+    color: var(--color-text-primary);
+    letter-spacing: var(--letter-spacing-normal);
+    margin-bottom: 0.5rem;
+  }
+
+  small {
+    color: var(--color-text-secondary);
+    letter-spacing: var(--letter-spacing-normal);
+  }
+}
+
+// === Edición ===
+.note-edit {
+  .edit-actions {
+    display: flex;
+    gap: 0.75rem;
+    margin-top: 1rem;
+  }
+}
+
+// === Scrollbar personalizada ===
+.notes-list {
+  &::-webkit-scrollbar {
+    width: 10px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: var(--color-bg-secondary);
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: var(--color-border);
+    border-radius: 0; // Minimalista
+
+    &:hover {
+      background: var(--rose-elegant);
+    }
+  }
+}
+
+// === Responsive ===
+@media (max-width: 768px) {
+  .notes-pane {
+    border-left: none;
+    border-top: 1px solid var(--color-border);
+  }
+
+  .notes-header {
+    padding: 1rem;
+  }
+
+  .notes-title {
+    font-size: 1.2rem;
+  }
+}
+
+// === Modo oscuro ===
+[data-theme="dark"] {
+  .notes-pane {
+    background-color: var(--color-bg-secondary);
+    border-left-color: var(--color-border);
+  }
+
+  .notes-header {
+    background-color: var(--color-bg-primary);
+    border-bottom-color: var(--color-border);
+  }
+
+  .notes-search {
+    background-color: var(--color-bg-primary);
+    border-bottom-color: var(--color-border);
+  }
+
+  .notes-title {
+    color: var(--color-text-primary);
+  }
+
+  .notes-new {
+    background: linear-gradient(135deg, rgba(201, 173, 167, 0.08), rgba(212, 163, 115, 0.08));
+    border-bottom-color: var(--color-accent);
+  }
+
+  .note-item {
+    background-color: var(--color-bg-primary);
+    border-color: var(--color-border);
+
+    &:hover {
+      box-shadow: var(--shadow-md);
+      border-color: var(--rose-gold);
+    }
+
+    &.editing {
+      box-shadow: 0 0 0 2px rgba(212, 163, 115, 0.3);
+      background: linear-gradient(135deg, rgba(201, 173, 167, 0.05), rgba(212, 163, 115, 0.05));
+      border-color: var(--rose-gold);
+    }
+  }
+
+  .note-page {
+    background-color: var(--color-bg-secondary);
+    border-color: var(--color-border);
+    color: var(--color-text-secondary);
+  }
+
+  .btn-favorite {
+    color: var(--rose-gold);
+
+    &.active {
+      color: var(--rose-gold);
+      filter: drop-shadow(0 2px 4px rgba(212, 163, 115, 0.4));
+    }
+  }
+
+  .note-actions {
+    .btn {
+      border-color: rgba(255, 255, 255, 0.15);
+      color: var(--gray-light);
+
+      &:hover {
+        background: linear-gradient(135deg, var(--rose-elegant), var(--rose-gold));
+        color: var(--white);
+        border-color: var(--rose-elegant);
+      }
+    }
+  }
+
+  .notes-list {
+    &::-webkit-scrollbar-thumb {
+      &:hover {
+        background: var(--rose-gold);
+      }
+    }
+  }
+}

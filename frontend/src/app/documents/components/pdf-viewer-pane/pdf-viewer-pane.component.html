@@ -1,0 +1,107 @@
+<!-- PDF Viewer Pane Component -->
+<section class="pdf-viewer-pane" role="region" aria-label="Visualizador de PDF">
+
+  <!-- Loading State -->
+  @if (isLoading()) {
+    <div class="pdf-loading">
+      <div class="spinner-border text-primary" role="status">
+        <span class="visually-hidden">Cargando documento...</span>
+      </div>
+      <p class="mt-3">Cargando documento...</p>
+    </div>
+  }
+
+  <!-- Error State -->
+  @else if (error()) {
+    <div class="pdf-error alert alert-danger" role="alert">
+      <h4 class="alert-heading">Error al cargar documento</h4>
+      <p>{{ error() }}</p>
+      <button class="btn btn-primary" type="button">Reintentar</button>
+    </div>
+  }
+
+  <!-- PDF Viewer -->
+  @else {
+    <div class="pdf-container">
+
+      <!-- Controles de navegación -->
+      <div class="pdf-controls">
+        <div class="controls-group">
+          <!-- Navegación de páginas -->
+          <button
+            type="button"
+            class="btn btn-sm btn-outline-secondary"
+            (click)="previousPage()"
+            [disabled]="currentPage() === 1"
+            title="Página anterior">
+            ◀
+          </button>
+
+          <span class="page-indicator">
+            Página <strong>{{ currentPage() }}</strong> de {{ totalPages() }}
+          </span>
+
+          <button
+            type="button"
+            class="btn btn-sm btn-outline-secondary"
+            (click)="nextPage()"
+            [disabled]="currentPage() === totalPages()"
+            title="Página siguiente">
+            ▶
+          </button>
+        </div>
+
+        <div class="controls-group">
+          <!-- Controles de zoom -->
+          <button
+            type="button"
+            class="btn btn-sm btn-outline-secondary"
+            (click)="zoomOut()"
+            [disabled]="scale() <= 0.5"
+            title="Reducir zoom">
+            −
+          </button>
+
+          <span class="zoom-indicator">
+            {{ getZoomPercentage() }}%
+          </span>
+
+          <button
+            type="button"
+            class="btn btn-sm btn-outline-secondary"
+            (click)="zoomIn()"
+            [disabled]="scale() >= 3.0"
+            title="Aumentar zoom">
+            +
+          </button>
+
+          <button
+            type="button"
+            class="btn btn-sm btn-outline-secondary"
+            (click)="resetZoom()"
+            title="Resetear zoom">
+            Ajustar
+          </button>
+        </div>
+      </div>
+
+      <!-- Canvas para renderizar PDF -->
+      <div class="pdf-canvas-wrapper">
+        <canvas #pdfCanvas class="pdf-canvas"></canvas>
+
+        <!-- Placeholder mientras no se implementa PDF.js completo -->
+        <div class="pdf-placeholder">
+          <div class="placeholder-icon">📄</div>
+          <h3>Visualizador de PDF</h3>
+          <p class="text-muted">
+            El PDF se renderizará aquí usando PDF.js
+          </p>
+          <small class="text-muted">
+            URL: {{ pdfUrl || 'No especificada' }}
+          </small>
+        </div>
+      </div>
+    </div>
+  }
+
+</section>

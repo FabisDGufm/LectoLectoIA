@@ -1,0 +1,53 @@
+<!-- Split View Layout Component -->
+<main class="split-view-layout" role="main">
+
+  <!-- Controles móviles para cambiar entre paneles -->
+  <div class="mobile-toggle d-md-none">
+    <button
+      type="button"
+      class="btn btn-sm"
+      [class.btn-primary]="showPdfPanel"
+      [class.btn-outline-primary]="!showPdfPanel"
+      (click)="togglePdfPanel()">
+      📄 Documento
+    </button>
+    <button
+      type="button"
+      class="btn btn-sm"
+      [class.btn-primary]="showNotesPanel"
+      [class.btn-outline-primary]="!showNotesPanel"
+      (click)="toggleNotesPanel()">
+      📝 Notas
+    </button>
+  </div>
+
+  <!-- Layout dividido -->
+  <div class="split-container">
+
+    <!-- Panel izquierdo: Visor de PDF -->
+    <section
+      class="split-panel split-panel-left"
+      [class.hidden-mobile]="!showPdfPanel"
+      aria-label="Panel de documento">
+      <app-pdf-viewer-pane
+        [documentId]="documentId"
+        [pdfUrl]="pdfUrl">
+      </app-pdf-viewer-pane>
+    </section>
+
+    <!-- Divisor redimensionable (preparado para futuras fases) -->
+    <div class="split-divider d-none d-md-block" aria-hidden="true"></div>
+
+    <!-- Panel derecho: Notas -->
+    <section
+      class="split-panel split-panel-right"
+      [class.hidden-mobile]="!showNotesPanel"
+      aria-label="Panel de notas">
+      <app-notes-pane
+        [documentId]="documentId">
+      </app-notes-pane>
+    </section>
+
+  </div>
+
+</main>

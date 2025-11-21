@@ -1,0 +1,201 @@
+/**
+ * Estilos del Toolbar - Diseño Elegante Minimalista
+ * Inspirado en diseño premium con acentos de rosa elegante
+ */
+
+.toolbar {
+  background: rgba(255, 255, 255, 0.98);
+  border-bottom: 1px solid var(--color-border);
+  padding: 1.5rem 2rem;
+  backdrop-filter: blur(20px);
+  position: sticky;
+  top: 0;
+  z-index: var(--z-sticky);
+  transition: all var(--transition-base);
+  box-shadow: 0 2px 8px rgba(139, 69, 96, 0.08);
+}
+
+.toolbar-container {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 2rem;
+  max-width: 1600px;
+  margin: 0 auto;
+}
+
+// === Logo y título ===
+.toolbar-brand {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.toolbar-title {
+  font-family: var(--font-family-heading);
+  font-size: 1.6rem;
+  font-weight: 700;
+  margin: 0;
+  color: var(--black);
+  letter-spacing: 0.5px;
+
+  .text-accent {
+    color: var(--rose-dark);
+  }
+}
+
+.toolbar-subtitle {
+  font-size: 0.75rem;
+  color: var(--gray-mid);
+  font-weight: 500;
+  letter-spacing: var(--letter-spacing-normal);
+}
+
+// === Saludo dinámico ===
+.toolbar-greeting {
+  display: flex;
+  align-items: center;
+  padding: 0.75rem 1.5rem;
+  background-color: var(--color-bg-primary);
+  border-radius: 0; // Minimalista
+  border: 1px solid var(--color-border);
+  transition: all var(--transition-base);
+  box-shadow: var(--shadow-sm);
+
+  .greeting-text {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--gray-dark);
+    letter-spacing: var(--letter-spacing-normal);
+  }
+
+  @media (max-width: 768px) {
+    .greeting-text {
+      display: none;
+    }
+  }
+}
+
+// === Acciones del toolbar ===
+.toolbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1.5rem;
+  border: 1px solid var(--color-border);
+  border-radius: 0; // Minimalista - sin redondeo
+  background-color: var(--color-bg-primary);
+  color: var(--gray-mid);
+  font-size: 0.9rem;
+  font-weight: 600;
+  letter-spacing: var(--letter-spacing-normal);
+  cursor: pointer;
+  transition: all var(--transition-base);
+
+  &:hover {
+    background: linear-gradient(135deg, var(--rose-dark), var(--pink-dark));
+    color: var(--white);
+    border-color: var(--rose-dark);
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+  }
+
+  &:active {
+    transform: translateY(0);
+  }
+
+  .theme-icon {
+    font-size: 1.2rem;
+  }
+}
+
+.btn-theme {
+  min-width: 44px; // Tamaño mínimo para accesibilidad táctil
+}
+
+.btn-upload {
+  font-weight: 600;
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none !important;
+  }
+
+  .spinner-border-sm {
+    width: 1rem;
+    height: 1rem;
+    border-width: 0.15em;
+  }
+}
+
+// === Responsive ===
+@media (max-width: 992px) {
+  .toolbar {
+    padding: 0.75rem 1rem;
+  }
+
+  .toolbar-container {
+    gap: 1rem;
+  }
+
+  .toolbar-title {
+    font-size: 1.25rem;
+  }
+}
+
+@media (max-width: 576px) {
+  .toolbar-brand {
+    .toolbar-subtitle {
+      display: none;
+    }
+  }
+}
+
+// === Modo oscuro ===
+[data-theme="dark"] {
+  .toolbar {
+    background: rgba(10, 10, 10, 0.98);
+    border-bottom-color: var(--color-border);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.6);
+  }
+
+  .toolbar-title {
+    color: var(--color-text-primary);
+
+    .text-accent {
+      color: var(--rose-gold);
+    }
+  }
+
+  .toolbar-subtitle {
+    color: var(--color-text-secondary);
+  }
+
+  .toolbar-greeting {
+    background-color: var(--color-bg-secondary);
+    border-color: var(--color-border);
+
+    .greeting-text {
+      color: var(--color-text-primary);
+    }
+  }
+
+  .btn {
+    background-color: var(--color-bg-secondary);
+    color: var(--color-text-secondary);
+    border-color: var(--color-border);
+
+    &:hover {
+      background: linear-gradient(135deg, var(--rose-elegant), var(--rose-gold));
+      color: var(--white);
+      border-color: var(--rose-gold);
+    }
+  }
+}

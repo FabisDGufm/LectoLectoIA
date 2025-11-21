@@ -1,0 +1,16 @@
+<!--
+  LectoLectoIA - Sistema Integral de Lectura y Anotación Digital
+  Aplicación Angular principal
+-->
+
+<!-- Toolbar superior con modo oscuro y saludo dinámico -->
+<app-toolbar></app-toolbar>
+
+<!-- Vista dividida: PDF + Notas -->
+<app-split-view-layout
+  [documentId]="demoDocumentId"
+  [pdfUrl]="demoPdfUrl">
+</app-split-view-layout>
+
+<!-- Router outlet para futuras rutas -->
+<router-outlet />

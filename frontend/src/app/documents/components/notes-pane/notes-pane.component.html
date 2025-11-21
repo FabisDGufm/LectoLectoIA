@@ -1,0 +1,134 @@
+<!-- Notes Pane Component -->
+<aside class="notes-pane" role="complementary" aria-label="Panel de notas">
+
+  <!-- Header del panel -->
+  <header class="notes-header">
+    <h2 class="notes-title">Notas</h2>
+    <span class="notes-count badge bg-primary">{{ filteredNotes().length }}</span>
+  </header>
+
+  <!-- Búsqueda de notas -->
+  <div class="notes-search">
+    <input
+      type="text"
+      class="form-control"
+      placeholder="Buscar en notas..."
+      [(ngModel)]="searchTerm"
+      (ngModelChange)="searchTerm.set($event)"
+      aria-label="Buscar notas">
+  </div>
+
+  <!-- Formulario para nueva nota -->
+  <div class="notes-new">
+    <textarea
+      class="form-control"
+      rows="3"
+      placeholder="Escribe una nueva nota..."
+      [(ngModel)]="newNoteText"
+      (ngModelChange)="newNoteText.set($event)"
+      aria-label="Nueva nota"></textarea>
+    <button
+      type="button"
+      class="btn btn-primary btn-sm mt-2 w-100"
+      (click)="createNote()"
+      [disabled]="!newNoteText().trim()">
+      Agregar Nota
+    </button>
+  </div>
+
+  <!-- Lista de notas -->
+  <div class="notes-list">
+
+    @if (isLoading()) {
+      <div class="notes-loading text-center py-4">
+        <div class="spinner-border spinner-border-sm" role="status">
+          <span class="visually-hidden">Cargando...</span>
+        </div>
+        <p class="mt-2 mb-0 small">Cargando notas...</p>
+      </div>
+    }
+
+    @else if (filteredNotes().length === 0) {
+      <div class="notes-empty text-center py-5">
+        <p class="text-muted">No hay notas aún</p>
+        <small class="text-muted">Crea tu primera nota arriba</small>
+      </div>
+    }
+
+    @else {
+      @for (note of filteredNotes(); track note._id) {
+        <article class="note-item" [class.editing]="isEditing(note._id)">
+
+          <!-- Vista normal de la nota -->
+          @if (!isEditing(note._id)) {
+            <div class="note-content">
+              <div class="note-header">
+                <small class="note-page">Pág. {{ note.pageIndex + 1 }}</small>
+                <button
+                  type="button"
+                  class="btn-favorite"
+                  (click)="toggleFavorite(note)"
+                  [class.active]="note.isFavorite"
+                  [attr.aria-label]="note.isFavorite ? 'Quitar de favoritos' : 'Agregar a favoritos'">
+                  {{ note.isFavorite ? '★' : '☆' }}
+                </button>
+              </div>
+
+              <p class="note-text">{{ note.text }}</p>
+
+              <div class="note-footer">
+                <small class="note-date">{{ formatDate(note.createdAt) }}</small>
+                <div class="note-actions">
+                  <button
+                    type="button"
+                    class="btn btn-sm btn-outline-primary"
+                    (click)="startEditing(note)"
+                    title="Editar">
+                    Editar
+                  </button>
+                  <button
+                    type="button"
+                    class="btn btn-sm btn-outline-danger"
+                    (click)="deleteNote(note._id)"
+                    title="Eliminar">
+                    Eliminar
+                  </button>
+                </div>
+              </div>
+            </div>
+          }
+
+          <!-- Vista de edición -->
+          @else {
+            <div class="note-edit">
+              <textarea
+                class="form-control"
+                rows="4"
+                [(ngModel)]="editNoteText"
+                (ngModelChange)="editNoteText.set($event)"
+                aria-label="Editar nota"></textarea>
+              <div class="edit-actions mt-2">
+                <button
+                  type="button"
+                  class="btn btn-sm btn-success"
+                  (click)="saveNote(note._id)"
+                  [disabled]="!editNoteText().trim()">
+                  Guardar
+                </button>
+                <button
+                  type="button"
+                  class="btn btn-sm btn-secondary"
+                  (click)="cancelEditing()">
+                  Cancelar
+                </button>
+              </div>
+            </div>
+          }
+
+        </article>
+      }
+    }
+
+  </div>
+
+</aside>

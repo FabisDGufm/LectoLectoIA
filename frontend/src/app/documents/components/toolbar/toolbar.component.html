@@ -1,0 +1,60 @@
+<!-- Toolbar Component -->
+<header class="toolbar" role="banner">
+  <div class="toolbar-container">
+    <!-- Logo y título -->
+    <div class="toolbar-brand">
+      <h1 class="toolbar-title">LectoLecto<span class="text-accent">IA</span></h1>
+      <span class="toolbar-subtitle">Sistema de Lectura y Anotación</span>
+    </div>
+
+    <!-- Saludo dinámico -->
+    <div class="toolbar-greeting">
+      <span class="greeting-text">{{ greeting().message }}</span>
+    </div>
+
+    <!-- Acciones de toolbar -->
+    <div class="toolbar-actions">
+      <!-- Botón de subir PDF -->
+      <button
+        type="button"
+        class="btn btn-upload"
+        (click)="openFileSelector()"
+        [disabled]="isUploading()"
+        title="Subir documento PDF">
+        @if (isUploading()) {
+          <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+          <span>Subiendo...</span>
+        } @else {
+          <span>📄</span> Subir PDF
+        }
+      </button>
+
+      <!-- Input de archivo oculto -->
+      <input
+        #fileInput
+        type="file"
+        accept="application/pdf"
+        (change)="onFileSelected($event)"
+        style="display: none;"
+        aria-label="Seleccionar archivo PDF"
+      />
+
+      <!-- Botón de modo oscuro -->
+      <button
+        type="button"
+        class="btn btn-theme"
+        (click)="toggleTheme()"
+        [attr.aria-label]="getThemeLabel()"
+        title="{{ getThemeLabel() }}">
+        <span class="theme-label">{{ getThemeLabel() }}</span>
+      </button>
+
+      <!-- PREPARADO PARA FASE 2: Botones adicionales -->
+      <!--
+      <button class="btn btn-settings" type="button">
+        <span>⚙️</span> Configuración
+      </button>
+      -->
+    </div>
+  </div>
+</header>

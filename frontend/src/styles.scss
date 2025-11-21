@@ -1,0 +1,264 @@
+/**
+ * Estilos Globales - LectoLectoIA
+ * Sistema Integral de Lectura y Anotación Digital
+ */
+
+// ============================================
+// IMPORTACIONES
+// ============================================
+
+// 1. Bootstrap (framework CSS)
+@import 'bootstrap/scss/bootstrap';
+
+// 2. Sistema de temas personalizado
+@import 'app/styles/theme';
+
+// 3. Variables y mixins SCSS
+@import 'app/styles/variables';
+
+// ============================================
+// RESET Y ESTILOS BASE
+// ============================================
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  font-size: var(--font-size-base);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  font-family: var(--font-family-base) !important;
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-normal);
+  line-height: var(--line-height-base);
+  color: var(--color-text-primary);
+  background-color: var(--color-bg-primary);
+  transition: background-color var(--transition-base), color var(--transition-base);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+// Efecto de textura sutil y elegante
+body::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-image:
+    repeating-linear-gradient(
+      0deg,
+      rgba(0, 0, 0, 0.02) 0px,
+      transparent 1px,
+      transparent 2px,
+      rgba(0, 0, 0, 0.02) 3px
+    );
+  opacity: 0.3;
+  pointer-events: none;
+  z-index: 9999;
+}
+
+// ============================================
+// TIPOGRAFÍA
+// ============================================
+
+h1, h2, h3, h4, h5, h6 {
+  margin-top: 0;
+  margin-bottom: 0.5rem;
+  font-family: var(--font-family-heading) !important;
+  font-weight: var(--font-weight-bold);
+  line-height: var(--line-height-sm);
+  color: var(--color-text-primary);
+  letter-spacing: var(--letter-spacing-tight);
+}
+
+p {
+  margin-top: 0;
+  margin-bottom: 1rem;
+}
+
+a {
+  color: var(--color-accent);
+  text-decoration: none;
+  transition: color var(--transition-fast);
+
+  &:hover {
+    color: var(--color-accent-hover);
+    text-decoration: underline;
+  }
+}
+
+// ============================================
+// FORMULARIOS
+// ============================================
+
+input,
+button,
+textarea,
+select {
+  font-family: inherit;
+  font-size: inherit;
+  line-height: inherit;
+}
+
+input[type="text"],
+input[type="email"],
+input[type="password"],
+textarea {
+  color: var(--color-text-primary);
+  background-color: var(--color-bg-primary);
+  border-color: var(--color-border);
+
+  &:focus {
+    border-color: var(--color-accent);
+    box-shadow: 0 0 0 0.2rem var(--color-accent-light);
+  }
+}
+
+// ============================================
+// SCROLLBARS PERSONALIZADAS
+// ============================================
+
+::-webkit-scrollbar {
+  width: 12px;
+  height: 12px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--color-bg-secondary);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-border);
+  border-radius: var(--border-radius-md);
+
+  &:hover {
+    background: var(--color-text-secondary);
+  }
+}
+
+// Firefox
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-border) var(--color-bg-secondary);
+}
+
+// ============================================
+// UTILIDADES GLOBALES
+// ============================================
+
+.text-accent {
+  color: var(--color-accent) !important;
+}
+
+.bg-accent {
+  background-color: var(--color-accent) !important;
+}
+
+.border-accent {
+  border-color: var(--color-accent) !important;
+}
+
+.shadow-sm {
+  box-shadow: var(--shadow-sm) !important;
+}
+
+.shadow-md {
+  box-shadow: var(--shadow-md) !important;
+}
+
+.shadow-lg {
+  box-shadow: var(--shadow-lg) !important;
+}
+
+// Animaciones
+.fade-in {
+  animation: fade-in var(--transition-base);
+}
+
+.slide-up {
+  animation: slide-up var(--transition-base);
+}
+
+// ============================================
+// ACCESIBILIDAD
+// ============================================
+
+// Mejora de foco para teclado
+:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+// Ocultar visualmente pero mantener accesibilidad
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+
+// ============================================
+// MODO OSCURO: Ajustes específicos
+// ============================================
+
+[data-theme="dark"] {
+  // Bootstrap overrides para dark mode
+  .form-control,
+  .form-select {
+    background-color: var(--color-bg-secondary);
+    border-color: var(--color-border);
+    color: var(--color-text-primary);
+
+    &:focus {
+      background-color: var(--color-bg-primary);
+      border-color: var(--color-accent);
+      color: var(--color-text-primary);
+    }
+  }
+
+  .btn-outline-primary {
+    color: var(--color-accent);
+    border-color: var(--color-accent);
+
+    &:hover {
+      background-color: var(--color-accent);
+      color: white;
+    }
+  }
+
+  .alert {
+    background-color: var(--color-bg-secondary);
+    border-color: var(--color-border);
+    color: var(--color-text-primary);
+  }
+}
+
+// ============================================
+// IMPRESIÓN
+// ============================================
+
+@media print {
+  body {
+    background-color: white;
+    color: black;
+  }
+
+  .no-print {
+    display: none !important;
+  }
+}
